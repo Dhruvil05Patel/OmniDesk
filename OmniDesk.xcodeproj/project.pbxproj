@@ -6,6 +6,22 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A119CEEF309117EC003CFC07 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = A119CEEE309117EC003CFC07 /* Secrets.xcconfig */; };
+		A1BBBC7E2F7B05D0001216C9 /* OmniDeskApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBC7D2F7B05D0001216C9 /* OmniDeskApp.swift */; };
+		A1BBBC802F7B05D0001216C9 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBC7F2F7B05D0001216C9 /* DashboardView.swift */; };
+		A1BBBCAD2F7B1F77001216C9 /* VoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCAC2F7B1F6D001216C9 /* VoiceView.swift */; };
+		A1BBBCAF2F7B1F85001216C9 /* TaskListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCAE2F7B1F85001216C9 /* TaskListView.swift */; };
+		A1BBBCB12F7B1FA4001216C9 /* MainViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB02F7B1FA4001216C9 /* MainViewModel.swift */; };
+		A1BBBCB42F7B1FDC001216C9 /* VoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB32F7B1FDC001216C9 /* VoiceService.swift */; };
+		A1BBBCB62F7B1FFF001216C9 /* GmailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB52F7B1FFC001216C9 /* GmailService.swift */; };
+		A1BBBCB82F7B2007001216C9 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB72F7B2005001216C9 /* CalendarService.swift */; };
+		A1BBBCC62F7B258F001216C9 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB92F7B200E001216C9 /* Task.swift */; };
+		A1BBBCD02F7B2E02001216C9 /* AIResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCCF2F7B2DF9001216C9 /* AIResponse.swift */; };
+		A1BBBCD12F7B30F6001216C9 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB22F7B1FCF001216C9 /* AIService.swift */; };
+		A1BBBCD22F7B3124001216C9 /* ActionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCCE2F7B2C97001216C9 /* ActionHandler.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		A1BBBC8A2F7B05D2001216C9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,14 +40,41 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A119CEEE309117EC003CFC07 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		A1BBBC7A2F7B05D0001216C9 /* OmniDesk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OmniDesk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1BBBC7D2F7B05D0001216C9 /* OmniDeskApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmniDeskApp.swift; sourceTree = "<group>"; };
+		A1BBBC7F2F7B05D0001216C9 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		A1BBBC892F7B05D2001216C9 /* OmniDeskTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OmniDeskTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1BBBC932F7B05D2001216C9 /* OmniDeskUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OmniDeskUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1BBBCAC2F7B1F6D001216C9 /* VoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceView.swift; sourceTree = "<group>"; };
+		A1BBBCAE2F7B1F85001216C9 /* TaskListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListView.swift; sourceTree = "<group>"; };
+		A1BBBCB02F7B1FA4001216C9 /* MainViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewModel.swift; sourceTree = "<group>"; };
+		A1BBBCB22F7B1FCF001216C9 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
+		A1BBBCB32F7B1FDC001216C9 /* VoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceService.swift; sourceTree = "<group>"; };
+		A1BBBCB52F7B1FFC001216C9 /* GmailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailService.swift; sourceTree = "<group>"; };
+		A1BBBCB72F7B2005001216C9 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		A1BBBCB92F7B200E001216C9 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
+		A1BBBCBA2F7B2017001216C9 /* Permissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permissions.swift; sourceTree = "<group>"; };
+		A1BBBCCE2F7B2C97001216C9 /* ActionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionHandler.swift; sourceTree = "<group>"; };
+		A1BBBCCF2F7B2DF9001216C9 /* AIResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIResponse.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1BBBCC72F7B2713001216C9 /* Exceptions for "OmniDesk" folder in "OmniDesk" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A1BBBC792F7B05D0001216C9 /* OmniDesk */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A1BBBC7C2F7B05D0001216C9 /* OmniDesk */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1BBBCC72F7B2713001216C9 /* Exceptions for "OmniDesk" folder in "OmniDesk" target */,
+			);
 			path = OmniDesk;
 			sourceTree = "<group>";
 		};
@@ -75,6 +118,15 @@
 		A1BBBC712F7B05D0001216C9 = {
 			isa = PBXGroup;
 			children = (
+				A119CEEE309117EC003CFC07 /* Secrets.xcconfig */,
+				A1BBBCCD2F7B2C87001216C9 /* ActionRouters */,
+				A1BBBCBC2F7B2037001216C9 /* App */,
+				A1BBBCBB2F7B2027001216C9 /* Assets */,
+				A1BBBCAA2F7B1F40001216C9 /* Utilities */,
+				A1BBBCA92F7B1F30001216C9 /* Models */,
+				A1BBBCA82F7B1F20001216C9 /* Services */,
+				A1BBBCA72F7B1F0A001216C9 /* ViewModels */,
+				A1BBBCA62F7B1EFE001216C9 /* Views */,
 				A1BBBC7C2F7B05D0001216C9 /* OmniDesk */,
 				A1BBBC8C2F7B05D2001216C9 /* OmniDeskTests */,
 				A1BBBC962F7B05D2001216C9 /* OmniDeskUITests */,
@@ -90,6 +142,75 @@
 				A1BBBC932F7B05D2001216C9 /* OmniDeskUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A1BBBCA62F7B1EFE001216C9 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A1BBBCAC2F7B1F6D001216C9 /* VoiceView.swift */,
+				A1BBBCAE2F7B1F85001216C9 /* TaskListView.swift */,
+				A1BBBC7F2F7B05D0001216C9 /* DashboardView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A1BBBCA72F7B1F0A001216C9 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				A1BBBCB02F7B1FA4001216C9 /* MainViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		A1BBBCA82F7B1F20001216C9 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A1BBBCB72F7B2005001216C9 /* CalendarService.swift */,
+				A1BBBCB52F7B1FFC001216C9 /* GmailService.swift */,
+				A1BBBCB22F7B1FCF001216C9 /* AIService.swift */,
+				A1BBBCB32F7B1FDC001216C9 /* VoiceService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A1BBBCA92F7B1F30001216C9 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A1BBBCCF2F7B2DF9001216C9 /* AIResponse.swift */,
+				A1BBBCB92F7B200E001216C9 /* Task.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A1BBBCAA2F7B1F40001216C9 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				A1BBBCBA2F7B2017001216C9 /* Permissions.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		A1BBBCBB2F7B2027001216C9 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Assets;
+			sourceTree = "<group>";
+		};
+		A1BBBCBC2F7B2037001216C9 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A1BBBC7D2F7B05D0001216C9 /* OmniDeskApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A1BBBCCD2F7B2C87001216C9 /* ActionRouters */ = {
+			isa = PBXGroup;
+			children = (
+				A1BBBCCE2F7B2C97001216C9 /* ActionHandler.swift */,
+			);
+			path = ActionRouters;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -212,6 +333,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A119CEEF309117EC003CFC07 /* Secrets.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -236,6 +358,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1BBBCD12F7B30F6001216C9 /* AIService.swift in Sources */,
+				A1BBBCB62F7B1FFF001216C9 /* GmailService.swift in Sources */,
+				A1BBBCB42F7B1FDC001216C9 /* VoiceService.swift in Sources */,
+				A1BBBCB12F7B1FA4001216C9 /* MainViewModel.swift in Sources */,
+				A1BBBCB82F7B2007001216C9 /* CalendarService.swift in Sources */,
+				A1BBBC802F7B05D0001216C9 /* DashboardView.swift in Sources */,
+				A1BBBC7E2F7B05D0001216C9 /* OmniDeskApp.swift in Sources */,
+				A1BBBCAD2F7B1F77001216C9 /* VoiceView.swift in Sources */,
+				A1BBBCC62F7B258F001216C9 /* Task.swift in Sources */,
+				A1BBBCD02F7B2E02001216C9 /* AIResponse.swift in Sources */,
+				A1BBBCD22F7B3124001216C9 /* ActionHandler.swift in Sources */,
+				A1BBBCAF2F7B1F85001216C9 /* TaskListView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,14 +524,28 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = OmniDesk/OmniDesk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = DY56D372K2;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = YES;
+				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = YES;
+				ENABLE_RESOURCE_ACCESS_USB = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OmniDesk/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -416,6 +564,12 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "dhruvil-patel.OmniDesk";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -434,14 +588,28 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = OmniDesk/OmniDesk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = DY56D372K2;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = YES;
+				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = YES;
+				ENABLE_RESOURCE_ACCESS_USB = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OmniDesk/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -460,6 +628,12 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "dhruvil-patel.OmniDesk";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
