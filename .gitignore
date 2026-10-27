@@ -65,3 +65,7 @@ fastlane/test_output
 Secrets.xcconfig
 *.xcconfig
 !*.template.xcconfig
+
+#MD Files
+summary.md
+summary.html
