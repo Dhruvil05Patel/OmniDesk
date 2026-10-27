@@ -38,7 +38,7 @@ struct VoiceView: View {
                 
                 Spacer()
                 
-                Text("Groq Llama-3.1")
+                Text("Groq Qwen-3.8")
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)

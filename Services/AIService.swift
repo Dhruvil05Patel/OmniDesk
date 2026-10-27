@@ -47,7 +47,7 @@ class AIService {
         """
         
         let body: [String: Any] = [
-            "model": "llama-3.1-8b-instant",
+            "model": "qwen/qwen3.8-27b",
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": trimmed]
@@ -55,7 +55,7 @@ class AIService {
             "response_format": [
                 "type": "json_object"
             ],
-            "max_tokens": 150,
+            "max_tokens": 250,
             "temperature": 0.1
         ]
         
