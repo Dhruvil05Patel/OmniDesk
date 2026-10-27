@@ -20,8 +20,8 @@ class AIService {
             return nil
         }
         
-        guard let apiKey = Bundle.main.object(forInfoDictionaryKey: "GROQ_API_KEY") as? String, !apiKey.isEmpty else {
-            print("❌ GROQ_API_KEY is missing. Please set it in Secrets.xcconfig.")
+        guard let apiKey = resolveApiKey(), !apiKey.isEmpty else {
+            print("❌ GROQ_API_KEY is missing. Please set it in Secrets.xcconfig or environment.")
             return nil
         }
         
@@ -110,4 +110,55 @@ class AIService {
         }
         return String(text[start...end])
     }
+    
+    private func resolveApiKey() -> String? {
+        // 1. Info.plist from Bundle.main or Bundle(for: AIService.self)
+        let mainBundleKey = Bundle.main.object(forInfoDictionaryKey: "GROQ_API_KEY") as? String
+        if let key = mainBundleKey, !key.isEmpty, !key.hasPrefix("$(") {
+            return key
+        }
+        
+        let frameworkBundleKey = Bundle(for: AIService.self).object(forInfoDictionaryKey: "GROQ_API_KEY") as? String
+        if let key = frameworkBundleKey, !key.isEmpty, !key.hasPrefix("$(") {
+            return key
+        }
+        
+        // 2. Process Environment
+        if let envKey = ProcessInfo.processInfo.environment["GROQ_API_KEY"], !envKey.isEmpty {
+            return envKey
+        }
+        
+        // 3. Fallback: Parse Secrets.xcconfig in bundle or source directory
+        if let bundlePath = Bundle.main.path(forResource: "Secrets", ofType: "xcconfig"),
+           let key = parseKeyFromConfig(path: bundlePath) {
+            return key
+        }
+        
+        // 4. Fallback for testing / dev environment
+        let devPath = URL(fileURLWithPath: #file)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Secrets.xcconfig").path
+        if let key = parseKeyFromConfig(path: devPath) {
+            return key
+        }
+        
+        return nil
+    }
+    
+    private func parseKeyFromConfig(path: String) -> String? {
+        guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
+        for line in content.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("GROQ_API_KEY") {
+                let parts = trimmed.components(separatedBy: "=")
+                if parts.count >= 2 {
+                    let val = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !val.isEmpty { return val }
+                }
+            }
+        }
+        return nil
+    }
 }
+

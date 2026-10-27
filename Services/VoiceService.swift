@@ -91,8 +91,6 @@ class VoiceService: ObservableObject {
         request.shouldReportPartialResults = true
         self.recognitionRequest = request
         
-        let inputNode = audioEngine.inputNode
-        
         recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
             guard let self = self else { return }
             if let result = result {
@@ -100,15 +98,25 @@ class VoiceService: ObservableObject {
                     self.recognizedText = result.bestTranscription.formattedString
                 }
             }
-            if error != nil || (result?.isFinal ?? false) {
-                // If audio finished
-            }
         }
         
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        audioEngine.reset()
+        let inputNode = audioEngine.inputNode
+        let outputFormat = inputNode.outputFormat(forBus: 0)
+        let inputFormat = inputNode.inputFormat(forBus: 0)
+        
+        // Guard against uninitialized / sandbox-restricted audio hardware
+        guard outputFormat.sampleRate > 0 || inputFormat.sampleRate > 0 else {
+            print("❌ CoreAudio device not ready. SampleRate is 0.")
+            self.state = .permissionDenied("Microphone not ready. Please check System Settings > Privacy & Security > Microphone.")
+            return
+        }
+        
+        let recordingFormat = (outputFormat.sampleRate > 0 && outputFormat.channelCount > 0) ? outputFormat : inputFormat
+        
         inputNode.removeTap(onBus: 0)
         
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] (buffer: AVAudioPCMBuffer, _: AVAudioTime) in
             guard let self = self else { return }
             request.append(buffer)
             
@@ -136,8 +144,8 @@ class VoiceService: ObservableObject {
             try audioEngine.start()
             self.state = .recording
         } catch {
-            print("❌ Audio Engine Error:", error)
-            self.state = .permissionDenied("Failed to start audio engine: \(error.localizedDescription)")
+            print("❌ Audio Engine Start Error:", error)
+            self.state = .permissionDenied("Could not start microphone: \(error.localizedDescription)")
             inputNode.removeTap(onBus: 0)
         }
     }
