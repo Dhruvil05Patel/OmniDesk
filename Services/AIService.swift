@@ -6,133 +6,108 @@
 //
 
 import Foundation
-import Combine
 
 class AIService {
     
-    func parseIntent(from text: String, completion: @escaping (AIResponse?) -> Void) {
+    /// Parses user speech text into structured intent and parameters via Groq API.
+    /// Returns nil if input is empty, too short, or if parsing fails.
+    func parseIntent(from text: String) async -> AIResponse? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Zero-cost pre-flight guard: Skip network call for empty or noise utterances
+        guard trimmed.count >= 3 else {
+            print("ℹ️ Voice input too short (\(trimmed.count) chars). Skipping API call.")
+            return nil
+        }
+        
         guard let apiKey = Bundle.main.object(forInfoDictionaryKey: "GROQ_API_KEY") as? String, !apiKey.isEmpty else {
             print("❌ GROQ_API_KEY is missing. Please set it in Secrets.xcconfig.")
-            completion(nil)
-            return
+            return nil
         }
+        
         guard let url = URL(string: "https://api.groq.com/openai/v1/chat/completions") else {
-            completion(nil)
-            return
+            return nil
         }
-        print("🚀 Sending POST request...")
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
-        let prompt = """
-        You are a function that outputs only JSON. Do not include any explanation, markdown, or code fences. Output a single JSON object that matches exactly this schema:
-        
-        Format:
-        {
-          "intent": "create_task | create_calendar_event | unknown",
-          "title": "...",
-          "date": "YYYY-MM-DD or null",
-          "time": "HH:mm or null"
-        }
-
-        Allowed intents:
-        - create_task
-        - create_calendar_event
-        - unknown
-
+        // Compact System Prompt with schema definition
+        let systemPrompt = """
+        You are an intent classifier. Output ONLY valid JSON matching this schema:
+        {"intent":"create_task"|"create_calendar_event"|"unknown","title":"string","date":"YYYY-MM-DD"|null,"time":"HH:mm"|null}
         Rules:
-        - Output only JSON. No extra text.
-        - Use null for unknown date or time.
-        - Title must be a short human-readable summary.
-        - If user mentions time/date → use create_calendar_event
-        - Extract meaningful title (remove filler words)
-        - Convert natural language dates (tomorrow, today)
-
-        Input: "\(text)"
+        - If user mentions specific date or time -> "create_calendar_event".
+        - Otherwise -> "create_task".
+        - Title must be a concise, cleaned summary without filler words.
+        - Output strictly JSON without explanations or markdown formatting.
         """
         
         let body: [String: Any] = [
             "model": "llama-3.1-8b-instant",
             "messages": [
-                [
-                    "role": "user",
-                    "content": prompt
-                ]
+                ["role": "system", "content": systemPrompt],
+                ["role": "user", "content": trimmed]
             ],
             "response_format": [
                 "type": "json_object"
-            ]
+            ],
+            "max_tokens": 150,
+            "temperature": 0.1
         ]
         
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        guard let httpBody = try? JSONSerialization.data(withJSONObject: body) else {
+            return nil
+        }
+        request.httpBody = httpBody
         
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
             
-            if let error = error {
-                print("API error:", error)
-                completion(nil)
-                return
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                print("❌ Groq API error status: \(http.statusCode)")
+                return nil
             }
             
-            if let http = response as? HTTPURLResponse {
-                print("HTTP status:", http.statusCode)
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let choices = json["choices"] as? [[String: Any]],
+                  let message = choices.first?["message"] as? [String: Any],
+                  let content = message["content"] as? String else {
+                return nil
             }
             
-            guard let data = data else {
-                completion(nil)
-                return
+            // Extract pure JSON substring in case of unexpected wrappers
+            let cleanJSON = extractJSONString(from: content)
+            guard let jsonData = cleanJSON.data(using: .utf8) else {
+                return nil
             }
             
-            do {
-                // Step 1: Parse outer response
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let choices = json["choices"] as? [[String: Any]],
-                   let message = choices.first?["message"] as? [String: Any],
-                   let content = message["content"] as? String {
-                    
-                    print("AI RAW:", content)
-                    
-                    // Try to extract a JSON object from the content (in case the model added prose)
-                    func extractJSONObject(from text: String) -> String? {
-                        guard let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}") else {
-                            return nil
-                        }
-                        let jsonSubstring = text[start...end]
-                        return String(jsonSubstring)
-                    }
-                    
-                    let jsonString = extractJSONObject(from: content) ?? content
-                    
-                    // Step 2: Convert string JSON → Data and decode on the main actor
-                    if let jsonData = jsonString.data(using: .utf8) {
-                        Task { @MainActor in
-                            do {
-                                let decoded = try JSONDecoder().decode(AIResponse.self, from: jsonData)
-                                completion(decoded)
-                            } catch {
-                                print("Decoding error:", error)
-                                print("Raw returned content:\n\(content)")
-                                completion(nil)
-                            }
-                        }
-                        return
-                    }
-                }
-                
-                completion(nil)
-                
-            } catch {
-                print("Parsing error:", error)
-                completion(nil)
-            }
+            return try JSONDecoder().decode(AIResponse.self, from: jsonData)
             
-        }.resume()
+        } catch {
+            print("❌ AIService error: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    /// Legacy completion-handler bridge for backward compatibility
+    func parseIntent(from text: String, completion: @escaping (AIResponse?) -> Void) {
+        Task {
+            let result = await parseIntent(from: text)
+            await MainActor.run {
+                completion(result)
+            }
+        }
+    }
+    
+    private func extractJSONString(from text: String) -> String {
+        guard let start = text.firstIndex(of: "{"),
+              let end = text.lastIndex(of: "}") else {
+            return text
+        }
+        return String(text[start...end])
     }
 }
-
