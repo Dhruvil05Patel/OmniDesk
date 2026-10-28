@@ -12,6 +12,9 @@ struct OmniDeskApp: App {
     var body: some Scene {
         WindowGroup {
             DashboardView()
+                .preferredColorScheme(.dark)
         }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
     }
 }

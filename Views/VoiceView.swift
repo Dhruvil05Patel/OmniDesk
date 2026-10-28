@@ -25,7 +25,7 @@ struct VoiceView: View {
                     Circle()
                         .fill(statusDotColor)
                         .frame(width: 7, height: 7)
-                        .shadow(color: isRecording ? Color.omniRed.opacity(0.6) : .clear, radius: 4)
+                        .shadow(color: isRecording ? Color.omniRed.opacity(0.8) : Color.omniEmerald.opacity(0.4), radius: 4)
                     
                     Text(statusText.uppercased())
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
@@ -39,14 +39,14 @@ struct VoiceView: View {
                 HStack(spacing: 8) {
                     Text("qwen-3.8-27b")
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundColor(.secondary.opacity(0.8))
+                        .foregroundColor(Color.omniTextSecondary)
                     
                     KeyboardShortcutBadge(shortcut: isRecording ? "ESC" : "SPACE")
                 }
             }
             
-            // Ultra-Slim 2px Minimalist Audio Waveform
-            HStack(spacing: 4) {
+            // Ultra-Slim Minimalist Audio Waveform
+            HStack(spacing: 5) {
                 ForEach(0..<15) { index in
                     MinimalWaveformBar(
                         level: voiceService.audioLevel,
@@ -55,7 +55,7 @@ struct VoiceView: View {
                     )
                 }
             }
-            .frame(height: 32)
+            .frame(height: 28)
             .padding(.vertical, 2)
             
             // Live Transcription Surface
@@ -63,54 +63,55 @@ struct VoiceView: View {
                 if voiceService.recognizedText.isEmpty {
                     Text(isRecording ? "Listening to your voice..." : "Click microphone or press Space to capture voice command...")
                         .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(.secondary.opacity(0.7))
+                        .foregroundColor(Color.omniTextMuted)
                         .frame(maxWidth: .infinity, alignment: .center)
                 } else {
                     Text(voiceService.recognizedText)
                         .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundColor(.primary)
+                        .foregroundColor(Color.omniTextPrimary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color.white.opacity(0.02))
+            .padding(.vertical, 12)
+            .background(Color.omniInputSurface)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(isRecording ? Color.omniAccent.opacity(0.3) : Color.omniBorder, lineWidth: 1)
+                    .stroke(isRecording ? Color.omniAccent.opacity(0.4) : Color.omniBorder, lineWidth: 1)
             )
             
-            // Primary Control Bar (Frosted Glass Button)
+            // Primary Control Bar (Pill Button with No Focus Ring)
             Button(action: handleVoiceToggle) {
                 HStack(spacing: 8) {
                     Image(systemName: isRecording ? "stop.fill" : "mic.fill")
                         .symbolRenderingMode(.hierarchical)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(isRecording ? .white : .primary)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(isRecording ? .white : Color.omniTextPrimary)
                     
                     Text(isRecording ? "Stop & Process" : "Start Speaking")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(isRecording ? .white : .primary)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(isRecording ? .white : Color.omniTextPrimary)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 9)
                 .background(
                     isRecording
-                        ? AnyView(LinearGradient(colors: [Color.omniRed, Color.omniRed.opacity(0.85)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        : AnyView(Color.white.opacity(isHoveringMic ? 0.08 : 0.04))
+                        ? Color.omniRed
+                        : (isHoveringMic ? Color.white.opacity(0.12) : Color.white.opacity(0.06))
                 )
                 .clipShape(Capsule())
                 .overlay(
                     Capsule()
-                        .stroke(isRecording ? Color.omniRed.opacity(0.4) : Color.omniBorder, lineWidth: 1)
+                        .stroke(isRecording ? Color.omniRed.opacity(0.5) : Color.white.opacity(0.14), lineWidth: 1)
                 )
-                .shadow(color: isRecording ? Color.omniRed.opacity(0.3) : .clear, radius: 8, y: 3)
+                .shadow(color: isRecording ? Color.omniRed.opacity(0.4) : Color.black.opacity(0.2), radius: 6, y: 2)
             }
             .buttonStyle(PlainButtonStyle())
+            .focusable(false)
             .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.15)) {
+                withAnimation(.easeInOut(duration: 0.12)) {
                     isHoveringMic = hovering
                 }
             }
@@ -131,22 +132,22 @@ struct VoiceView: View {
     private var statusDotColor: Color {
         switch voiceService.state {
         case .idle:
-            return .secondary.opacity(0.6)
+            return Color.omniEmerald
         case .recording:
-            return .omniRed
+            return Color.omniRed
         case .permissionDenied:
-            return .omniAmber
+            return Color.omniAmber
         }
     }
     
     private var statusTextColor: Color {
         switch voiceService.state {
         case .idle:
-            return .secondary
+            return Color.omniTextSecondary
         case .recording:
-            return .omniRed
+            return Color.omniRed
         case .permissionDenied:
-            return .omniAmber
+            return Color.omniAmber
         }
     }
     
@@ -162,28 +163,33 @@ struct VoiceView: View {
     }
 }
 
-// MARK: - Ultra-Slim 2px Minimalist Audio Bar
+// MARK: - Ultra-Slim Minimalist Audio Bar
 private struct MinimalWaveformBar: View {
     let level: Float
     let index: Int
     let isRecording: Bool
     
+    // Wave heights pattern for idle state
+    private let idleHeights: [CGFloat] = [4, 6, 10, 14, 8, 16, 12, 18, 14, 10, 16, 8, 12, 6, 4]
+    
     var computedHeight: CGFloat {
-        if !isRecording { return 4 }
-        let waveOffsets: [CGFloat] = [0.3, 0.6, 0.9, 1.2, 0.7, 1.4, 1.0, 0.8, 1.3, 0.9, 1.1, 0.6, 1.0, 0.5, 0.3]
+        if !isRecording {
+            return idleHeights[index % idleHeights.count]
+        }
+        let waveOffsets: [CGFloat] = [0.4, 0.7, 1.0, 1.3, 0.8, 1.5, 1.1, 0.9, 1.4, 1.0, 1.2, 0.7, 1.1, 0.6, 0.4]
         let offset = waveOffsets[index % waveOffsets.count]
-        let baseHeight = CGFloat(level) * 32.0 * offset
-        return max(4, min(32, baseHeight))
+        let baseHeight = CGFloat(level) * 28.0 * offset
+        return max(4, min(28, baseHeight))
     }
     
     var body: some View {
         RoundedRectangle(cornerRadius: 1, style: .continuous)
             .fill(
                 isRecording
-                    ? Color.omniAccent.opacity(0.85)
-                    : Color.white.opacity(0.12)
+                    ? Color.omniAccent
+                    : Color.white.opacity(0.18)
             )
-            .frame(width: 2, height: computedHeight)
+            .frame(width: 2.5, height: computedHeight)
             .animation(.spring(response: 0.12, dampingFraction: 0.6), value: level)
     }
 }

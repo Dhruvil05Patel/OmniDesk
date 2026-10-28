@@ -20,19 +20,19 @@ struct TaskListView: View {
                     Image(systemName: "checklist")
                         .symbolRenderingMode(.hierarchical)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.omniAccent)
+                        .foregroundColor(Color.omniAccent)
                     
                     Text("TASKS & ACTIONS")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.omniTextSecondary)
                         .tracking(0.6)
                     
                     Text("\(viewModel.tasks.count)")
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.omniTextPrimary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.06))
+                        .background(Color.white.opacity(0.08))
                         .clipShape(Capsule())
                 }
                 
@@ -46,9 +46,10 @@ struct TaskListView: View {
                     }) {
                         Text("Clear All")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary.opacity(0.8))
+                            .foregroundColor(Color.omniTextSecondary)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .focusable(false)
                 }
             }
             
@@ -57,11 +58,12 @@ struct TaskListView: View {
                 Image(systemName: "plus")
                     .symbolRenderingMode(.hierarchical)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.omniTextMuted)
                 
                 TextField("Add task manually...", text: $newTaskTitle)
                     .textFieldStyle(PlainTextFieldStyle())
                     .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(Color.omniTextPrimary)
                     .focused($isInputFieldFocused)
                     .onSubmit {
                         commitManualTask()
@@ -72,15 +74,16 @@ struct TaskListView: View {
                         KeyboardShortcutBadge(shortcut: "↵")
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .focusable(false)
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.white.opacity(0.03))
+            .padding(.vertical, 9)
+            .background(Color.omniInputSurface)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(isInputFieldFocused ? Color.omniAccent.opacity(0.4) : Color.omniBorder, lineWidth: 1)
+                    .stroke(isInputFieldFocused ? Color.omniAccent.opacity(0.5) : Color.omniBorder, lineWidth: 1)
             )
             
             // Task List or Empty State
@@ -88,21 +91,21 @@ struct TaskListView: View {
                 VStack(spacing: 10) {
                     Image(systemName: "tray")
                         .symbolRenderingMode(.hierarchical)
-                        .font(.system(size: 28, weight: .light))
-                        .foregroundColor(.secondary.opacity(0.4))
-                        .padding(.top, 16)
+                        .font(.system(size: 26, weight: .light))
+                        .foregroundColor(Color.omniTextMuted)
+                        .padding(.top, 14)
                     
                     Text("No pending tasks")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.omniTextSecondary)
                     
                     Text("Speak into the mic or type above to queue tasks.")
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.7))
-                        .padding(.bottom, 16)
+                        .foregroundColor(Color.omniTextMuted)
+                        .padding(.bottom, 14)
                 }
                 .frame(maxWidth: .infinity)
-                .background(Color.white.opacity(0.015))
+                .background(Color.omniInputSurface.opacity(0.5))
                 .cornerRadius(8)
             } else {
                 ScrollView {
@@ -145,16 +148,17 @@ private struct MinimalTaskRow: View {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .symbolRenderingMode(.hierarchical)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(task.isCompleted ? .omniEmerald : .secondary.opacity(0.7))
+                    .foregroundColor(task.isCompleted ? Color.omniEmerald : Color.omniTextMuted)
             }
             .buttonStyle(PlainButtonStyle())
+            .focusable(false)
             
             // Title & Chips
             VStack(alignment: .leading, spacing: 3) {
                 Text(task.title)
                     .font(.system(size: 13, weight: .regular))
-                    .strikethrough(task.isCompleted, color: .secondary.opacity(0.7))
-                    .foregroundColor(task.isCompleted ? .secondary.opacity(0.7) : .primary)
+                    .strikethrough(task.isCompleted, color: Color.omniTextMuted)
+                    .foregroundColor(task.isCompleted ? Color.omniTextMuted : Color.omniTextPrimary)
                 
                 if task.date != nil || task.time != nil {
                     HStack(spacing: 6) {
@@ -165,7 +169,7 @@ private struct MinimalTaskRow: View {
                                 Text(date)
                             }
                             .font(.system(size: 10, weight: .medium, design: .monospaced))
-                            .foregroundColor(.omniAccent.opacity(0.85))
+                            .foregroundColor(Color.omniAccent)
                         }
                         if let time = task.time {
                             HStack(spacing: 3) {
@@ -174,7 +178,7 @@ private struct MinimalTaskRow: View {
                                 Text(time)
                             }
                             .font(.system(size: 10, weight: .medium, design: .monospaced))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.omniTextSecondary)
                         }
                     }
                 }
@@ -188,9 +192,10 @@ private struct MinimalTaskRow: View {
                     Image(systemName: "trash")
                         .symbolRenderingMode(.hierarchical)
                         .font(.system(size: 12))
-                        .foregroundColor(.omniRed.opacity(0.8))
+                        .foregroundColor(Color.omniRed)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .focusable(false)
                 .transition(.opacity)
             }
         }

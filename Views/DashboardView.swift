@@ -14,16 +14,17 @@ struct DashboardView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Minimalist Top Window Bar
+            // Minimalist Top Window Bar (Includes space for macOS traffic lights)
             HStack(alignment: .center) {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")
                         .symbolRenderingMode(.hierarchical)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.omniAccent)
+                        .foregroundColor(Color.omniAccent)
                     
                     Text("OmniDesk")
                         .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(Color.omniTextPrimary)
                         .tracking(0.3)
                 }
                 
@@ -34,13 +35,13 @@ struct DashboardView: View {
                     Circle()
                         .fill(Color.omniEmerald)
                         .frame(width: 6, height: 6)
-                        .shadow(color: Color.omniEmerald.opacity(0.4), radius: 3)
+                        .shadow(color: Color.omniEmerald.opacity(0.5), radius: 3)
                     
                     Text("Groq Cloud Ready")
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.omniTextSecondary)
                 }
-                .padding(.horizontal, 9)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(Color.white.opacity(0.04))
                 .clipShape(Capsule())
@@ -50,7 +51,7 @@ struct DashboardView: View {
                 )
             }
             .padding(.horizontal, 24)
-            .padding(.top, 20)
+            .padding(.top, 24)
             .padding(.bottom, 14)
             
             Divider()
@@ -66,17 +67,17 @@ struct DashboardView: View {
                             
                             Text(statusMessage)
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.primary)
+                                .foregroundColor(Color.omniTextPrimary)
                             
                             Spacer()
                         }
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 9)
                         .background(statusBackgroundColor)
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
                         )
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
@@ -96,36 +97,34 @@ struct DashboardView: View {
                 .background(Color.omniBorder)
             
             // Footer Navigation Legend (Raycast style)
-            HStack(spacing: 14) {
-                HStack(spacing: 5) {
+            HStack(spacing: 16) {
+                HStack(spacing: 6) {
                     KeyboardShortcutBadge(shortcut: "SPACE")
                     Text("Record Voice")
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.8))
+                        .foregroundColor(Color.omniTextSecondary)
                 }
                 
-                HStack(spacing: 5) {
+                HStack(spacing: 6) {
                     KeyboardShortcutBadge(shortcut: "↵")
                     Text("Add Task")
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.8))
+                        .foregroundColor(Color.omniTextSecondary)
                 }
                 
                 Spacer()
                 
                 Text("Personal AI OS • v1.0")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.5))
+                    .foregroundColor(Color.omniTextMuted)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
-            .background(Color.black.opacity(0.2))
+            .background(Color.black.opacity(0.35))
         }
         .frame(minWidth: 540, maxWidth: 660, minHeight: 620, maxHeight: 720)
-        .background(
-            Color.omniBackground
-                .ignoresSafeArea()
-        )
+        .background(Color.omniBackground.ignoresSafeArea())
+        .preferredColorScheme(.dark)
     }
     
     @ViewBuilder
@@ -136,7 +135,7 @@ struct DashboardView: View {
         case .listening:
             Image(systemName: "waveform")
                 .symbolRenderingMode(.hierarchical)
-                .foregroundColor(.omniRed)
+                .foregroundColor(Color.omniRed)
                 .font(.system(size: 12))
         case .processing:
             ProgressView()
@@ -145,12 +144,12 @@ struct DashboardView: View {
         case .actionSuccess:
             Image(systemName: "checkmark")
                 .symbolRenderingMode(.hierarchical)
-                .foregroundColor(.omniEmerald)
+                .foregroundColor(Color.omniEmerald)
                 .font(.system(size: 11, weight: .bold))
         case .error:
             Image(systemName: "exclamationmark.triangle")
                 .symbolRenderingMode(.hierarchical)
-                .foregroundColor(.omniAmber)
+                .foregroundColor(Color.omniAmber)
                 .font(.system(size: 12))
         }
     }
@@ -175,13 +174,13 @@ struct DashboardView: View {
         case .idle:
             return .clear
         case .listening:
-            return Color.omniRed.opacity(0.12)
+            return Color.omniRed.opacity(0.15)
         case .processing:
-            return Color.omniAccent.opacity(0.12)
+            return Color.omniAccent.opacity(0.15)
         case .actionSuccess:
-            return Color.omniEmerald.opacity(0.12)
+            return Color.omniEmerald.opacity(0.15)
         case .error:
-            return Color.omniAmber.opacity(0.12)
+            return Color.omniAmber.opacity(0.15)
         }
     }
 }
