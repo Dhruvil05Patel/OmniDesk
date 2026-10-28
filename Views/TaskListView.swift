@@ -10,25 +10,29 @@ import SwiftUI
 struct TaskListView: View {
     @ObservedObject var viewModel: MainViewModel
     @State private var newTaskTitle: String = ""
+    @FocusState private var isInputFieldFocused: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             // Header
-            HStack {
+            HStack(alignment: .center) {
                 HStack(spacing: 8) {
                     Image(systemName: "checklist")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.indigo)
+                        .symbolRenderingMode(.hierarchical)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.omniAccent)
                     
-                    Text("Tasks & Actions")
-                        .font(.system(size: 17, weight: .bold))
+                    Text("TASKS & ACTIONS")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .tracking(0.6)
                     
                     Text("\(viewModel.tasks.count)")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundColor(.indigo)
-                        .padding(.horizontal, 8)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.indigo.opacity(0.15))
+                        .background(Color.white.opacity(0.06))
                         .clipShape(Capsule())
                 }
                 
@@ -36,73 +40,75 @@ struct TaskListView: View {
                 
                 if !viewModel.tasks.isEmpty {
                     Button(action: {
-                        withAnimation {
+                        withAnimation(.easeInOut(duration: 0.2)) {
                             viewModel.tasks.removeAll()
                         }
                     }) {
                         Text("Clear All")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary.opacity(0.8))
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
             }
             
-            // Manual Add Row
-            HStack(spacing: 8) {
-                Image(systemName: "plus.circle.fill")
+            // Minimalist Quick Add Input Row
+            HStack(spacing: 10) {
+                Image(systemName: "plus")
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.secondary)
                 
                 TextField("Add task manually...", text: $newTaskTitle)
                     .textFieldStyle(PlainTextFieldStyle())
+                    .font(.system(size: 13, weight: .regular))
+                    .focused($isInputFieldFocused)
                     .onSubmit {
                         commitManualTask()
                     }
                 
                 if !newTaskTitle.isEmpty {
                     Button(action: commitManualTask) {
-                        Text("Add")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Color.indigo)
-                            .cornerRadius(6)
+                        KeyboardShortcutBadge(shortcut: "↵")
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-            .cornerRadius(10)
+            .background(Color.white.opacity(0.03))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(isInputFieldFocused ? Color.omniAccent.opacity(0.4) : Color.omniBorder, lineWidth: 1)
+            )
             
-            // Task List Content
+            // Task List or Empty State
             if viewModel.tasks.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle.badge.questionmark")
-                        .font(.system(size: 36))
+                VStack(spacing: 10) {
+                    Image(systemName: "tray")
+                        .symbolRenderingMode(.hierarchical)
+                        .font(.system(size: 28, weight: .light))
                         .foregroundColor(.secondary.opacity(0.4))
-                        .padding(.top, 20)
+                        .padding(.top, 16)
                     
-                    Text("No tasks yet")
-                        .font(.system(size: 15, weight: .medium))
+                    Text("No pending tasks")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                     
-                    Text("Speak into the microphone above or type to add items.")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                        .padding(.bottom, 20)
+                    Text("Speak into the mic or type above to queue tasks.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary.opacity(0.7))
+                        .padding(.bottom, 16)
                 }
                 .frame(maxWidth: .infinity)
-                .background(Color(NSColor.controlBackgroundColor).opacity(0.2))
-                .cornerRadius(12)
+                .background(Color.white.opacity(0.015))
+                .cornerRadius(8)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 10) {
+                    LazyVStack(spacing: 6) {
                         ForEach(viewModel.tasks) { task in
-                            TaskRowView(
+                            MinimalTaskRow(
                                 task: task,
                                 onToggle: { viewModel.toggleTask(id: task.id) },
                                 onDelete: { viewModel.deleteTask(id: task.id) }
@@ -111,19 +117,10 @@ struct TaskListView: View {
                     }
                     .padding(.vertical, 2)
                 }
-                .frame(maxHeight: 280)
+                .frame(maxHeight: 260)
             }
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color(NSColor.windowBackgroundColor).opacity(0.75))
-                .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 3)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
+        .minimalCard(padding: 18, cornerRadius: 14)
     }
     
     private func commitManualTask() {
@@ -133,8 +130,8 @@ struct TaskListView: View {
     }
 }
 
-// Individual Task Card
-private struct TaskRowView: View {
+// MARK: - Minimalist Linear-Style Task Row
+private struct MinimalTaskRow: View {
     let task: TodoTask
     let onToggle: () -> Void
     let onDelete: () -> Void
@@ -142,33 +139,42 @@ private struct TaskRowView: View {
     @State private var isHovered: Bool = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Checkmark Toggle
+        HStack(spacing: 10) {
+            // Minimalist Radio Toggle
             Button(action: onToggle) {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 18))
-                    .foregroundColor(task.isCompleted ? .emerald : .secondary)
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(task.isCompleted ? .omniEmerald : .secondary.opacity(0.7))
             }
             .buttonStyle(PlainButtonStyle())
             
-            // Title & Badges
-            VStack(alignment: .leading, spacing: 4) {
+            // Title & Chips
+            VStack(alignment: .leading, spacing: 3) {
                 Text(task.title)
-                    .font(.system(size: 14, weight: .medium))
-                    .strikethrough(task.isCompleted, color: .secondary)
-                    .foregroundColor(task.isCompleted ? .secondary : .primary)
+                    .font(.system(size: 13, weight: .regular))
+                    .strikethrough(task.isCompleted, color: .secondary.opacity(0.7))
+                    .foregroundColor(task.isCompleted ? .secondary.opacity(0.7) : .primary)
                 
                 if task.date != nil || task.time != nil {
                     HStack(spacing: 6) {
                         if let date = task.date {
-                            Label(date, systemImage: "calendar")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.indigo)
+                            HStack(spacing: 3) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 9))
+                                Text(date)
+                            }
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .foregroundColor(.omniAccent.opacity(0.85))
                         }
                         if let time = task.time {
-                            Label(time, systemImage: "clock")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.cyan)
+                            HStack(spacing: 3) {
+                                Image(systemName: "clock")
+                                    .font(.system(size: 9))
+                                Text(time)
+                            }
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -176,29 +182,26 @@ private struct TaskRowView: View {
             
             Spacer()
             
-            // Delete button on hover
+            // Delete action on hover
             if isHovered {
                 Button(action: onDelete) {
                     Image(systemName: "trash")
-                        .font(.system(size: 13))
-                        .foregroundColor(.red.opacity(0.8))
+                        .symbolRenderingMode(.hierarchical)
+                        .font(.system(size: 12))
+                        .foregroundColor(.omniRed.opacity(0.8))
                 }
                 .buttonStyle(PlainButtonStyle())
                 .transition(.opacity)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color(NSColor.controlBackgroundColor).opacity(isHovered ? 0.7 : 0.4))
-        .cornerRadius(10)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(isHovered ? Color.white.opacity(0.04) : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(.easeInOut(duration: 0.12)) {
                 isHovered = hovering
             }
         }
     }
-}
-
-private extension Color {
-    static let emerald = Color(red: 16/255, green: 185/255, blue: 129/255)
 }
