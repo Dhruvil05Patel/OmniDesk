@@ -139,20 +139,80 @@ public final class ActionHandler: @unchecked Sendable {
         }
     }
     
-    // MARK: - Legacy Intent Bridge
+    // MARK: - Voice & AI Intent Dispatch Bridge
     
-    static func handle(response: AIResponse) {
+    @discardableResult
+    public static func handle(response: AIResponse, handler: ActionHandler = .shared) async throws -> ToolResult? {
         switch response.intent {
+        case "send_email":
+            let recipient = response.recipient ?? "user@example.com"
+            let subject = response.subject ?? response.title ?? "Message from OmniDesk"
+            let body = response.body ?? response.title ?? ""
+            return try await handler.dispatchTool(
+                named: "mail_send_message",
+                arguments: [
+                    "recipient": recipient,
+                    "subject": subject,
+                    "body": body
+                ]
+            )
+            
+        case "create_email_draft":
+            let recipient = response.recipient ?? "user@example.com"
+            let subject = response.subject ?? response.title ?? "Draft"
+            let body = response.body ?? ""
+            return try await handler.dispatchTool(
+                named: "mail_create_draft",
+                arguments: [
+                    "recipient": recipient,
+                    "subject": subject,
+                    "body": body
+                ]
+            )
+            
+        case "close_app", "terminate_app":
+            let app = response.appName ?? response.title ?? ""
+            return try await handler.dispatchTool(
+                named: "apps_terminate",
+                arguments: ["app_name": app]
+            )
+            
+        case "launch_app":
+            let app = response.appName ?? response.title ?? ""
+            return try await handler.dispatchTool(
+                named: "apps_launch_or_focus",
+                arguments: ["app_name": app]
+            )
+            
         case "create_calendar_event":
-            if let title = response.title {
-                CalendarService().createEvent(title: title, date: response.date ?? "")
+            let title = response.title ?? "New Event"
+            var args: [String: Any] = ["title": title]
+            if let date = response.date {
+                let time = response.time ?? "09:00"
+                args["start_time"] = "\(date)T\(time):00"
             }
+            return try await handler.dispatchTool(
+                named: "calendar_create_event",
+                arguments: args
+            )
+            
+        case "create_note":
+            let title = response.title ?? "Note"
+            let body = response.body ?? response.title ?? ""
+            return try await handler.dispatchTool(
+                named: "obsidian_create_note",
+                arguments: [
+                    "path": "\(title).md",
+                    "content": body
+                ]
+            )
             
         case "create_task":
-            print("Store as task:", response.title ?? "")
+            return ToolResult.success(message: "Stored as task: \(response.title ?? "")")
             
         default:
-            print("Unknown intent:", response.intent)
+            print("Unhandled intent:", response.intent)
+            return nil
         }
     }
 }
