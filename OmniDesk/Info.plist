@@ -6,8 +6,16 @@
 	<string>Microphone access for voice commands</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Speech recognition for task creation</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>OmniDesk needs full calendar access to query your schedule, detect meeting conflicts, and organize events.</string>
 	<key>NSCalendarsUsageDescription</key>
-	<string>This app needs calendar access to create events</string>
+	<string>This app needs calendar access to create events and check schedule availability.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>OmniDesk needs reminders access to track tasks, to-dos, and follow-ups.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>OmniDesk needs reminders access to track tasks and follow-ups.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>OmniDesk needs permission to communicate with Apple Mail to search communications, prepare drafts, and manage messages.</string>
 	<key>GROQ_API_KEY</key>
 	<string>$(GROQ_API_KEY)</string>
 </dict>
