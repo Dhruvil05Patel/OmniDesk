@@ -12,6 +12,13 @@ struct DashboardView: View {
     @StateObject private var voiceService = VoiceService()
     @StateObject private var viewModel = MainViewModel()
     
+    @AppStorage("app_theme") private var appThemeRaw: String = AppTheme.system.rawValue
+    @State private var showSettingsSheet: Bool = false
+    
+    private var currentTheme: AppTheme {
+        AppTheme(rawValue: appThemeRaw) ?? .system
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Minimalist Top Window Bar (Includes space for macOS traffic lights)
@@ -30,25 +37,48 @@ struct DashboardView: View {
                 
                 Spacer()
                 
-                // Status Pill
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color.omniEmerald)
-                        .frame(width: 6, height: 6)
-                        .shadow(color: Color.omniEmerald.opacity(0.5), radius: 3)
+                HStack(spacing: 8) {
+                    // Status Pill
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.omniEmerald)
+                            .frame(width: 6, height: 6)
+                            .shadow(color: Color.omniEmerald.opacity(0.5), radius: 3)
+                        
+                        Text("Groq Cloud Ready")
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundColor(Color.omniTextSecondary)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.omniPillBackground)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.omniBorder, lineWidth: 1)
+                    )
                     
-                    Text("Groq Cloud Ready")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundColor(Color.omniTextSecondary)
+                    // Settings Button
+                    Button(action: { showSettingsSheet.toggle() }) {
+                        Image(systemName: "gearshape")
+                            .symbolRenderingMode(.hierarchical)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color.omniTextSecondary)
+                            .padding(6)
+                            .background(Color.omniPillBackground)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.omniBorder, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .focusable(false)
+                    .popover(isPresented: $showSettingsSheet, arrowEdge: .bottom) {
+                        SettingsView()
+                            .preferredColorScheme(currentTheme.colorScheme)
+                    }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.04))
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(Color.omniBorder, lineWidth: 1)
-                )
             }
             .padding(.horizontal, 24)
             .padding(.top, 24)
@@ -120,11 +150,11 @@ struct DashboardView: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
-            .background(Color.black.opacity(0.35))
+            .background(Color.omniFooterBackground)
         }
         .frame(minWidth: 540, maxWidth: 660, minHeight: 620, maxHeight: 720)
         .background(Color.omniBackground.ignoresSafeArea())
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(currentTheme.colorScheme)
     }
     
     @ViewBuilder
@@ -182,6 +212,148 @@ struct DashboardView: View {
         case .error:
             return Color.omniAmber.opacity(0.15)
         }
+    }
+}
+
+// MARK: - Dedicated Settings & Customization View
+struct SettingsView: View {
+    @AppStorage("app_theme") private var appThemeRaw: String = AppTheme.system.rawValue
+    @Environment(\.dismiss) private var dismiss
+    
+    private var selectedTheme: Binding<AppTheme> {
+        Binding(
+            get: { AppTheme(rawValue: appThemeRaw) ?? .system },
+            set: { appThemeRaw = $0.rawValue }
+        )
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            // Header
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color.omniAccent)
+                    
+                    Text("Settings & Customization")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(Color.omniTextPrimary)
+                }
+                
+                Spacer()
+                
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color.omniTextMuted)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .focusable(false)
+            }
+            
+            Divider()
+                .background(Color.omniBorder)
+            
+            // Appearance Section
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "circle.righthalf.filled")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color.omniAccent)
+                    
+                    Text("COLOR SCHEME")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color.omniTextSecondary)
+                        .tracking(0.6)
+                }
+                
+                // Theme Selector Cards (System / Dark / Light)
+                HStack(spacing: 8) {
+                    ForEach(AppTheme.allCases) { theme in
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                appThemeRaw = theme.rawValue
+                            }
+                        }) {
+                            VStack(spacing: 7) {
+                                Image(systemName: theme.iconName)
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(selectedTheme.wrappedValue == theme ? Color.omniAccent : Color.omniTextSecondary)
+                                
+                                Text(theme.displayName)
+                                    .font(.system(size: 11, weight: selectedTheme.wrappedValue == theme ? .semibold : .medium))
+                                    .foregroundColor(selectedTheme.wrappedValue == theme ? Color.omniTextPrimary : Color.omniTextSecondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                selectedTheme.wrappedValue == theme
+                                    ? Color.omniAccent.opacity(0.12)
+                                    : Color.omniInputSurface
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(
+                                        selectedTheme.wrappedValue == theme
+                                            ? Color.omniAccent.opacity(0.6)
+                                            : Color.omniBorder,
+                                        lineWidth: selectedTheme.wrappedValue == theme ? 1.5 : 1
+                                    )
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .focusable(false)
+                    }
+                }
+                
+                Text(selectedTheme.wrappedValue.description)
+                    .font(.system(size: 11))
+                    .foregroundColor(Color.omniTextMuted)
+                    .padding(.top, 2)
+            }
+            .minimalCard(padding: 14, cornerRadius: 10)
+            
+            // Intelligence Engine Info
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "cpu")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color.omniAccent)
+                    
+                    Text("INTELLIGENCE ENGINE")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color.omniTextSecondary)
+                        .tracking(0.6)
+                }
+                
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Active LLM")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color.omniTextPrimary)
+                        Text("Groq Cloud Ultra-Low Latency Inference")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color.omniTextMuted)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("qwen-3.8-27b")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundColor(Color.omniEmerald)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.omniEmerald.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+            .minimalCard(padding: 14, cornerRadius: 10)
+        }
+        .padding(18)
+        .frame(width: 360)
+        .background(Color.omniBackground.ignoresSafeArea())
     }
 }
 

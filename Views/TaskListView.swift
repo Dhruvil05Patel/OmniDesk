@@ -32,7 +32,7 @@ struct TaskListView: View {
                         .foregroundColor(Color.omniTextPrimary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.08))
+                        .background(Color.omniPillBackground)
                         .clipShape(Capsule())
                 }
                 
@@ -201,7 +201,7 @@ private struct MinimalTaskRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(isHovered ? Color.white.opacity(0.04) : Color.clear)
+        .background(isHovered ? Color.omniPillBackground : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.12)) {

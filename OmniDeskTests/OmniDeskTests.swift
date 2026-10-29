@@ -7,6 +7,7 @@
 
 import Testing
 import Foundation
+import SwiftUI
 @testable import OmniDesk
 
 struct OmniDeskTests {
@@ -99,5 +100,16 @@ struct OmniDeskTests {
         // A new instance should load the saved task from UserDefaults
         let vm2 = MainViewModel()
         #expect(vm2.tasks.contains(where: { $0.title == "Persisted across instances" }))
+    }
+    
+    @Test func testAppThemeColorSchemeMapping() throws {
+        #expect(AppTheme.system.colorScheme == nil)
+        #expect(AppTheme.dark.colorScheme == .dark)
+        #expect(AppTheme.light.colorScheme == .light)
+        
+        #expect(AppTheme.allCases.count == 3)
+        #expect(AppTheme.system.rawValue == "system")
+        #expect(AppTheme.dark.rawValue == "dark")
+        #expect(AppTheme.light.rawValue == "light")
     }
 }
