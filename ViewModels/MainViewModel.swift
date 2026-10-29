@@ -76,23 +76,38 @@ class MainViewModel: ObservableObject {
                 let parsedTitle = response.title?.trimmingCharacters(in: .whitespacesAndNewlines)
                 let finalTitle = (parsedTitle?.isEmpty == false ? parsedTitle! : trimmed)
                 
-                let task = TodoTask(
-                    title: finalTitle,
-                    date: response.date,
-                    time: response.time
-                )
-                
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    tasks.insert(task, at: 0)
-                }
-                
-                if response.intent == "create_calendar_event" {
-                    showTemporaryStatus(.actionSuccess("Scheduled: \"\(task.title)\""))
-                } else {
+                // If intent is create_task, add to tasks list
+                if response.intent == "create_task" {
+                    let task = TodoTask(
+                        title: finalTitle,
+                        date: response.date,
+                        time: response.time
+                    )
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        tasks.insert(task, at: 0)
+                    }
                     showTemporaryStatus(.actionSuccess("Added: \"\(task.title)\""))
                 }
                 
-                ActionHandler.handle(response: response)
+                // Dispatch live connector tool
+                do {
+                    if let result = try await ActionHandler.handle(response: response) {
+                        let feedback = result.message ?? "Action completed"
+                        showTemporaryStatus(.actionSuccess(feedback))
+                    } else if response.intent != "create_task" {
+                        let fallback = TodoTask(title: finalTitle)
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            tasks.insert(fallback, at: 0)
+                        }
+                        showTemporaryStatus(.actionSuccess("Added: \"\(fallback.title)\""))
+                    }
+                } catch {
+                    if case ConnectorError.destructiveActionRejectedByUser = error {
+                        showTemporaryStatus(.error("Action cancelled by user"))
+                    } else {
+                        showTemporaryStatus(.error(error.localizedDescription))
+                    }
+                }
             } else {
                 // Resilient fallback: If AI network or parsing fails, always save user's voice dictation as a task
                 let fallbackTask = TodoTask(title: trimmed)
