@@ -99,9 +99,7 @@ struct VoiceView: View {
                 .background(
                     isRecording
                         ? Color.omniRed
-                        : (isHoveringMic
-                            ? Color.adaptive(light: Color.black.opacity(0.08), dark: Color.white.opacity(0.12))
-                            : Color.adaptive(light: Color.black.opacity(0.04), dark: Color.white.opacity(0.06)))
+                        : (isHoveringMic ? Color.omniBorderHover : Color.omniPillBackground)
                 )
                 .clipShape(Capsule())
                 .overlay(
@@ -109,7 +107,7 @@ struct VoiceView: View {
                         .stroke(
                             isRecording
                                 ? Color.omniRed.opacity(0.5)
-                                : Color.adaptive(light: Color.black.opacity(0.12), dark: Color.white.opacity(0.14)),
+                                : (isHoveringMic ? Color.omniBorderHover : Color.omniBorder),
                             lineWidth: 1
                         )
                 )
@@ -198,7 +196,7 @@ private struct MinimalWaveformBar: View {
             .fill(
                 isRecording
                     ? Color.omniAccent
-                    : Color.adaptive(light: Color.black.opacity(0.16), dark: Color.white.opacity(0.18))
+                    : Color.omniTextMuted.opacity(0.35)
             )
             .frame(width: 2.5, height: computedHeight)
             .animation(.spring(response: 0.12, dampingFraction: 0.6), value: level)

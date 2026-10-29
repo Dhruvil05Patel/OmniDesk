@@ -112,4 +112,20 @@ struct OmniDeskTests {
         #expect(AppTheme.dark.rawValue == "dark")
         #expect(AppTheme.light.rawValue == "light")
     }
+    
+    @Test @MainActor func testThemeManagerSwitching() throws {
+        let themeManager = ThemeManager.shared
+        
+        themeManager.setTheme(.light)
+        #expect(themeManager.currentTheme == .light)
+        #expect(NSApplication.shared.appearance?.name == .aqua)
+        
+        themeManager.setTheme(.dark)
+        #expect(themeManager.currentTheme == .dark)
+        #expect(NSApplication.shared.appearance?.name == .darkAqua)
+        
+        themeManager.setTheme(.system)
+        #expect(themeManager.currentTheme == .system)
+        #expect(NSApplication.shared.appearance == nil)
+    }
 }

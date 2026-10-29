@@ -106,7 +106,11 @@ struct TaskListView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .background(Color.omniInputSurface.opacity(0.5))
-                .cornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.omniBorder, lineWidth: 1)
+                )
             } else {
                 ScrollView {
                     LazyVStack(spacing: 6) {

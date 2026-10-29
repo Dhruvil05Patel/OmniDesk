@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import Combine
 
 // MARK: - App Theme Mode (System, Dark, Light)
 enum AppTheme: String, CaseIterable, Identifiable, Codable {
@@ -61,81 +62,121 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+// MARK: - Global Theme Manager
+@MainActor
+final class ThemeManager: ObservableObject {
+    static let shared = ThemeManager()
+    
+    @Published var currentTheme: AppTheme {
+        didSet {
+            UserDefaults.standard.set(currentTheme.rawValue, forKey: "app_theme")
+            applyTheme()
+        }
+    }
+    
+    init() {
+        let raw = UserDefaults.standard.string(forKey: "app_theme") ?? AppTheme.system.rawValue
+        self.currentTheme = AppTheme(rawValue: raw) ?? .system
+        applyTheme()
+    }
+    
+    func setTheme(_ theme: AppTheme) {
+        currentTheme = theme
+    }
+    
+    func applyTheme() {
+        let targetAppearance: NSAppearance?
+        switch currentTheme {
+        case .system:
+            targetAppearance = nil
+        case .dark:
+            targetAppearance = NSAppearance(named: .darkAqua)
+        case .light:
+            targetAppearance = NSAppearance(named: .aqua)
+        }
+        
+        NSApplication.shared.appearance = targetAppearance
+        for window in NSApplication.shared.windows {
+            window.appearance = targetAppearance
+        }
+    }
+}
+
 // MARK: - Semantic Adaptive Color Tokens (Dynamic Light / Dark)
 extension Color {
-    /// Creates an adaptive color that resolves to `dark` or `light` based on the active appearance
-    static func adaptive(light: Color, dark: Color) -> Color {
+    /// Native AppKit dynamic color that respects NSApplication appearance and system appearance
+    static func adaptive(light: NSColor, dark: NSColor) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            return isDark ? NSColor(dark) : NSColor(light)
+            return isDark ? dark : light
         })
     }
     
     /// Canvas background: Deep obsidian in dark mode, clean slate off-white in light mode
     static let omniBackground = Color.adaptive(
-        light: Color(red: 0.96, green: 0.97, blue: 0.98),  // #F5F7FA
-        dark: Color(red: 0.08, green: 0.09, blue: 0.11)    // #14171C
+        light: NSColor(srgbRed: 0.96, green: 0.97, blue: 0.98, alpha: 1.0),
+        dark: NSColor(srgbRed: 0.08, green: 0.09, blue: 0.11, alpha: 1.0)
     )
     
     /// Card surface: Solid pure white in light mode, deep charcoal in dark mode
     static let omniCardSurface = Color.adaptive(
-        light: Color.white,
-        dark: Color(red: 0.12, green: 0.13, blue: 0.16)
+        light: NSColor.white,
+        dark: NSColor(srgbRed: 0.12, green: 0.13, blue: 0.16, alpha: 1.0)
     )
     
     /// Card surface hover state
     static let omniCardSurfaceHover = Color.adaptive(
-        light: Color(red: 0.97, green: 0.98, blue: 0.99),
-        dark: Color(red: 0.15, green: 0.16, blue: 0.20)
+        light: NSColor(srgbRed: 0.97, green: 0.98, blue: 0.99, alpha: 1.0),
+        dark: NSColor(srgbRed: 0.15, green: 0.16, blue: 0.20, alpha: 1.0)
     )
     
     /// Recessed background for textfields, inputs, and transcription container
     static let omniInputSurface = Color.adaptive(
-        light: Color(red: 0.93, green: 0.94, blue: 0.96),
-        dark: Color(red: 0.09, green: 0.10, blue: 0.13)
+        light: NSColor(srgbRed: 0.93, green: 0.94, blue: 0.96, alpha: 1.0),
+        dark: NSColor(srgbRed: 0.09, green: 0.10, blue: 0.13, alpha: 1.0)
     )
     
     /// Precision 1px border stroke
     static let omniBorder = Color.adaptive(
-        light: Color.black.opacity(0.08),
-        dark: Color.white.opacity(0.08)
+        light: NSColor(white: 0.0, alpha: 0.09),
+        dark: NSColor(white: 1.0, alpha: 0.08)
     )
     
     /// Active or hovered 1px border stroke
     static let omniBorderHover = Color.adaptive(
-        light: Color.black.opacity(0.16),
-        dark: Color.white.opacity(0.18)
+        light: NSColor(white: 0.0, alpha: 0.18),
+        dark: NSColor(white: 1.0, alpha: 0.18)
     )
     
     // MARK: High-Contrast Typography Tokens
     /// Crisp, high-contrast primary text
     static let omniTextPrimary = Color.adaptive(
-        light: Color(red: 0.08, green: 0.10, blue: 0.14), // #141A24
-        dark: Color(white: 0.95)
+        light: NSColor(srgbRed: 0.06, green: 0.09, blue: 0.15, alpha: 1.0), // Deep ink/navy
+        dark: NSColor(white: 0.95, alpha: 1.0)
     )
     
     /// Clean, readable secondary text
     static let omniTextSecondary = Color.adaptive(
-        light: Color(red: 0.38, green: 0.42, blue: 0.50), // #616B80
-        dark: Color(red: 0.65, green: 0.68, blue: 0.74)  // #A6ADB9
+        light: NSColor(srgbRed: 0.28, green: 0.33, blue: 0.42, alpha: 1.0), // Clean medium slate
+        dark: NSColor(srgbRed: 0.65, green: 0.68, blue: 0.74, alpha: 1.0)
     )
     
     /// Muted tertiary text and subtle metadata
     static let omniTextMuted = Color.adaptive(
-        light: Color(red: 0.58, green: 0.62, blue: 0.68),
-        dark: Color(red: 0.44, green: 0.47, blue: 0.52)
+        light: NSColor(srgbRed: 0.45, green: 0.50, blue: 0.58, alpha: 1.0),
+        dark: NSColor(srgbRed: 0.44, green: 0.47, blue: 0.52, alpha: 1.0)
     )
     
     /// Sub-surface background for interactive badges & pills
     static let omniPillBackground = Color.adaptive(
-        light: Color.black.opacity(0.04),
-        dark: Color.white.opacity(0.04)
+        light: NSColor(white: 0.0, alpha: 0.05),
+        dark: NSColor(white: 1.0, alpha: 0.04)
     )
     
     /// Bottom status footer background
     static let omniFooterBackground = Color.adaptive(
-        light: Color(red: 0.93, green: 0.94, blue: 0.96).opacity(0.95),
-        dark: Color.black.opacity(0.35)
+        light: NSColor(srgbRed: 0.94, green: 0.95, blue: 0.97, alpha: 0.95),
+        dark: NSColor(white: 0.0, alpha: 0.40)
     )
     
     // MARK: Accent Colors
@@ -179,7 +220,6 @@ struct MinimalCardModifier: ViewModifier {
 
 // MARK: - Keyboard Shortcut Badge View
 struct KeyboardShortcutBadge: View {
-    @Environment(\.colorScheme) private var colorScheme
     let shortcut: String
     
     var body: some View {
@@ -188,11 +228,11 @@ struct KeyboardShortcutBadge: View {
             .foregroundColor(Color.omniTextSecondary)
             .padding(.horizontal, 6)
             .padding(.vertical, 2.5)
-            .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
+            .background(Color.omniPillBackground)
             .cornerRadius(4)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
-                    .stroke(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.10), lineWidth: 0.5)
+                    .stroke(Color.omniBorder, lineWidth: 0.5)
             )
     }
 }

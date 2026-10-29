@@ -11,13 +11,8 @@ struct DashboardView: View {
     
     @StateObject private var voiceService = VoiceService()
     @StateObject private var viewModel = MainViewModel()
-    
-    @AppStorage("app_theme") private var appThemeRaw: String = AppTheme.system.rawValue
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var showSettingsSheet: Bool = false
-    
-    private var currentTheme: AppTheme {
-        AppTheme(rawValue: appThemeRaw) ?? .system
-    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -76,7 +71,7 @@ struct DashboardView: View {
                     .focusable(false)
                     .popover(isPresented: $showSettingsSheet, arrowEdge: .bottom) {
                         SettingsView()
-                            .preferredColorScheme(currentTheme.colorScheme)
+                            .preferredColorScheme(themeManager.currentTheme.colorScheme)
                     }
                 }
             }
@@ -107,7 +102,7 @@ struct DashboardView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                .stroke(Color.omniBorder, lineWidth: 1)
                         )
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
@@ -154,7 +149,7 @@ struct DashboardView: View {
         }
         .frame(minWidth: 540, maxWidth: 660, minHeight: 620, maxHeight: 720)
         .background(Color.omniBackground.ignoresSafeArea())
-        .preferredColorScheme(currentTheme.colorScheme)
+        .preferredColorScheme(themeManager.currentTheme.colorScheme)
     }
     
     @ViewBuilder
@@ -217,15 +212,8 @@ struct DashboardView: View {
 
 // MARK: - Dedicated Settings & Customization View
 struct SettingsView: View {
-    @AppStorage("app_theme") private var appThemeRaw: String = AppTheme.system.rawValue
+    @ObservedObject private var themeManager = ThemeManager.shared
     @Environment(\.dismiss) private var dismiss
-    
-    private var selectedTheme: Binding<AppTheme> {
-        Binding(
-            get: { AppTheme(rawValue: appThemeRaw) ?? .system },
-            set: { appThemeRaw = $0.rawValue }
-        )
-    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -273,22 +261,22 @@ struct SettingsView: View {
                     ForEach(AppTheme.allCases) { theme in
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.15)) {
-                                appThemeRaw = theme.rawValue
+                                themeManager.setTheme(theme)
                             }
                         }) {
                             VStack(spacing: 7) {
                                 Image(systemName: theme.iconName)
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(selectedTheme.wrappedValue == theme ? Color.omniAccent : Color.omniTextSecondary)
+                                    .foregroundColor(themeManager.currentTheme == theme ? Color.omniAccent : Color.omniTextSecondary)
                                 
                                 Text(theme.displayName)
-                                    .font(.system(size: 11, weight: selectedTheme.wrappedValue == theme ? .semibold : .medium))
-                                    .foregroundColor(selectedTheme.wrappedValue == theme ? Color.omniTextPrimary : Color.omniTextSecondary)
+                                    .font(.system(size: 11, weight: themeManager.currentTheme == theme ? .semibold : .medium))
+                                    .foregroundColor(themeManager.currentTheme == theme ? Color.omniTextPrimary : Color.omniTextSecondary)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(
-                                selectedTheme.wrappedValue == theme
+                                themeManager.currentTheme == theme
                                     ? Color.omniAccent.opacity(0.12)
                                     : Color.omniInputSurface
                             )
@@ -296,10 +284,10 @@ struct SettingsView: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                                     .stroke(
-                                        selectedTheme.wrappedValue == theme
+                                        themeManager.currentTheme == theme
                                             ? Color.omniAccent.opacity(0.6)
                                             : Color.omniBorder,
-                                        lineWidth: selectedTheme.wrappedValue == theme ? 1.5 : 1
+                                        lineWidth: themeManager.currentTheme == theme ? 1.5 : 1
                                     )
                             )
                         }
@@ -308,7 +296,7 @@ struct SettingsView: View {
                     }
                 }
                 
-                Text(selectedTheme.wrappedValue.description)
+                Text(themeManager.currentTheme.description)
                     .font(.system(size: 11))
                     .foregroundColor(Color.omniTextMuted)
                     .padding(.top, 2)

@@ -9,23 +9,22 @@ import SwiftUI
 
 @main
 struct OmniDeskApp: App {
-    @AppStorage("app_theme") private var appThemeRaw: String = AppTheme.system.rawValue
-    
-    private var currentTheme: AppTheme {
-        AppTheme(rawValue: appThemeRaw) ?? .system
-    }
+    @ObservedObject private var themeManager = ThemeManager.shared
     
     var body: some Scene {
         WindowGroup {
             DashboardView()
-                .preferredColorScheme(currentTheme.colorScheme)
+                .preferredColorScheme(themeManager.currentTheme.colorScheme)
+                .onAppear {
+                    themeManager.applyTheme()
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         
         Settings {
             SettingsView()
-                .preferredColorScheme(currentTheme.colorScheme)
+                .preferredColorScheme(themeManager.currentTheme.colorScheme)
         }
     }
 }
