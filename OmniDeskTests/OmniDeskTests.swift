@@ -45,6 +45,59 @@ struct OmniDeskTests {
         #expect(decoded.date == "2026-11-15")
         #expect(decoded.time == "17:00")
     }
+    
+    @Test func testAIResponseExpandedConnectorDecoding() throws {
+        let jsonPayload = """
+        {
+            "intent": "send_email",
+            "title": "Email HR",
+            "recipient": "recruiter@apple.com",
+            "subject": "Interview Followup",
+            "body": "Thank you for the conversation today.",
+            "appName": "Mail"
+        }
+        """
+        let data = try #require(jsonPayload.data(using: .utf8))
+        let decoded = try JSONDecoder().decode(AIResponse.self, from: data)
+        
+        #expect(decoded.intent == "send_email")
+        #expect(decoded.recipient == "recruiter@apple.com")
+        #expect(decoded.subject == "Interview Followup")
+        #expect(decoded.body == "Thank you for the conversation today.")
+        #expect(decoded.appName == "Mail")
+    }
+    
+    @MainActor
+    @Test func testActionHandlerVoiceIntentBridge() async throws {
+        let taskResponse = AIResponse(intent: "create_task", title: "Buy groceries")
+        let taskResult = try await ActionHandler.handle(response: taskResponse)
+        #expect(taskResult?.success == true)
+        
+        struct MockVoiceMailRunner: AppleScriptRunnerProtocol {
+            func execute(script: String) throws -> String {
+                return "DRAFT_CREATED"
+            }
+        }
+        
+        let customGate = SafetyPolicyGate()
+        let customLogger = AuditLogger()
+        let customHandler = ActionHandler(policyGate: customGate, auditLogger: customLogger)
+        customHandler.register(connector: MailConnector(runner: MockVoiceMailRunner()))
+        
+        let draftResponse = AIResponse(
+            intent: "create_email_draft",
+            title: "Draft email",
+            recipient: "recruiter@apple.com",
+            subject: "Follow up",
+            body: "Great chat!"
+        )
+        let draftResult = try await ActionHandler.handle(response: draftResponse, handler: customHandler)
+        #expect(draftResult?.success == true)
+        
+        let unknownResponse = AIResponse(intent: "unknown", title: "gibberish")
+        let unknownResult = try await ActionHandler.handle(response: unknownResponse)
+        #expect(unknownResult == nil)
+    }
 
     @Test func testTaskModelCreationAndToggle() async throws {
         var task = TodoTask(title: "Finish Portfolio Project", date: "2026-11-01", time: "10:00")
