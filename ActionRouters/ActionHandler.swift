@@ -170,18 +170,54 @@ public final class ActionHandler: @unchecked Sendable {
                 ]
             )
             
+        case "search_email":
+            let query = response.subject ?? response.recipient ?? response.title ?? ""
+            return try await handler.dispatchTool(
+                named: "mail_search_messages",
+                arguments: ["query": query]
+            )
+            
         case "close_app", "terminate_app":
-            let app = response.appName ?? response.title ?? ""
+            var app = response.appName ?? ""
+            if app.isEmpty, let title = response.title {
+                let lower = title.lowercased()
+                if lower.hasPrefix("quit ") {
+                    app = String(title.dropFirst(5))
+                } else if lower.hasPrefix("close ") {
+                    app = String(title.dropFirst(6))
+                } else if lower.hasPrefix("terminate ") {
+                    app = String(title.dropFirst(10))
+                } else {
+                    app = title
+                }
+            }
             return try await handler.dispatchTool(
                 named: "apps_terminate",
                 arguments: ["app_name": app]
             )
             
         case "launch_app":
-            let app = response.appName ?? response.title ?? ""
+            var app = response.appName ?? ""
+            if app.isEmpty, let title = response.title {
+                let lower = title.lowercased()
+                if lower.hasPrefix("open ") {
+                    app = String(title.dropFirst(5))
+                } else if lower.hasPrefix("launch ") {
+                    app = String(title.dropFirst(7))
+                } else {
+                    app = title
+                }
+            }
             return try await handler.dispatchTool(
                 named: "apps_launch_or_focus",
                 arguments: ["app_name": app]
+            )
+            
+        case "search_notes":
+            let query = response.title ?? ""
+            return try await handler.dispatchTool(
+                named: "obsidian_search_notes",
+                arguments: ["query": query]
             )
             
         case "create_calendar_event":
