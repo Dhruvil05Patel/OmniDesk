@@ -12,6 +12,7 @@ struct DashboardView: View {
     @StateObject private var voiceService = VoiceService()
     @StateObject private var viewModel = MainViewModel()
     @ObservedObject private var themeManager = ThemeManager.shared
+    @ObservedObject private var policyGate = SafetyPolicyGate.shared
     @State private var showSettingsSheet: Bool = false
     
     var body: some View {
@@ -150,6 +151,18 @@ struct DashboardView: View {
         .frame(minWidth: 540, maxWidth: 660, minHeight: 620, maxHeight: 720)
         .background(Color.omniBackground.ignoresSafeArea())
         .preferredColorScheme(themeManager.currentTheme.colorScheme)
+        .overlay {
+            if policyGate.activeRequest != nil {
+                ActionConfirmationModalView(policyGate: policyGate)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                            removal: .opacity.combined(with: .scale(scale: 0.98))
+                        )
+                    )
+            }
+        }
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: policyGate.activeRequest != nil)
     }
     
     @ViewBuilder
