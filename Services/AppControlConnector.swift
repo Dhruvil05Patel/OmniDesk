@@ -8,6 +8,7 @@
 import Foundation
 import AppKit
 import ApplicationServices
+import Darwin
 
 /// Represents metadata of an installed macOS application.
 public struct InstalledAppInfo: Codable, Sendable, Equatable {
@@ -293,17 +294,62 @@ public final class AppControlConnector: Connector, @unchecked Sendable {
         guard let appName = arguments["app_name"] as? String, !appName.trimmingCharacters(in: .whitespaces).isEmpty else {
             throw ConnectorError.invalidArguments(details: "app_name is required for apps_terminate")
         }
-        let force = arguments["force"] as? Bool ?? false
         
-        guard let target = workspace.runningApplications.first(where: {
-            $0.localizedName?.localizedCaseInsensitiveContains(appName) == true ||
-            $0.bundleIdentifier?.localizedCaseInsensitiveContains(appName) == true
-        }) else {
-            throw ConnectorError.targetNotFound(identifier: "Running process '\(appName)' not found.")
+        let trimmedName = appName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = trimmedName.lowercased()
+        if lower == "an app" || lower == "app" || lower == "the app" || lower == "quit an app" {
+            throw ConnectorError.invalidArguments(details: "Please specify which application to quit (e.g. 'Quit Safari' or 'Close Slack').")
         }
         
-        let finalName = target.localizedName ?? appName
-        let success = force ? target.forceTerminate() : target.terminate()
+        let force = arguments["force"] as? Bool ?? false
+        
+        // Match priority: 1) Exact match, 2) Prefix match, 3) Substring match
+        let runningApps = workspace.runningApplications
+        guard let target = runningApps.first(where: {
+            $0.localizedName?.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame ||
+            $0.bundleIdentifier?.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame
+        }) ?? runningApps.first(where: {
+            $0.localizedName?.lowercased().hasPrefix(lower) == true
+        }) ?? runningApps.first(where: {
+            $0.localizedName?.localizedCaseInsensitiveContains(trimmedName) == true ||
+            $0.bundleIdentifier?.localizedCaseInsensitiveContains(trimmedName) == true
+        }) else {
+            throw ConnectorError.targetNotFound(identifier: "Running process '\(trimmedName)' not found.")
+        }
+        
+        let finalName = target.localizedName ?? trimmedName
+        
+        // Multi-tier progressive termination strategy
+        // Tier 1: NSRunningApplication graceful or forced termination
+        var success = force ? target.forceTerminate() : target.terminate()
+        
+        // Tier 2: AppleScript graceful quit if target.terminate() failed with kernel port error
+        if !success && !force {
+            let script = "tell application \"\(finalName)\" to quit"
+            if let appleScript = NSAppleScript(source: script) {
+                var err: NSDictionary?
+                appleScript.executeAndReturnError(&err)
+                if err == nil {
+                    success = true
+                }
+            }
+        }
+        
+        // Tier 3: POSIX SIGTERM signal fallback
+        if !success {
+            let pid = target.processIdentifier
+            if pid > 0 {
+                let sig = force ? SIGKILL : SIGTERM
+                if kill(pid, sig) == 0 {
+                    success = true
+                }
+            }
+        }
+        
+        // Tier 4: Force termination fallback
+        if !success && force {
+            success = target.forceTerminate()
+        }
         
         if success {
             return .success(
