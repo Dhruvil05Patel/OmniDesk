@@ -371,15 +371,17 @@ struct SettingsView: View {
                 
                 Button(action: {
                     dismiss()
-                    Task {
-                        _ = try? await ActionHandler.shared.dispatchTool(
-                            named: "mail_send_message",
-                            arguments: [
-                                "recipient": "recruiter@apple.com",
-                                "subject": "Senior macOS Systems Architect Proposal",
-                                "body": "Please review the attached privacy-preserving assistant architecture."
-                            ]
-                        )
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        Task {
+                            _ = try? await ActionHandler.shared.dispatchTool(
+                                named: "mail_send_message",
+                                arguments: [
+                                    "recipient": "recruiter@apple.com",
+                                    "subject": "Senior macOS Systems Architect Proposal",
+                                    "body": "Please review the attached privacy-preserving assistant architecture."
+                                ]
+                            )
+                        }
                     }
                 }) {
                     HStack(spacing: 8) {
