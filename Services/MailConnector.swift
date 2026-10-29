@@ -205,13 +205,17 @@ public final class MailConnector: Connector, @unchecked Sendable {
             ])
         }
         
+        let messageText = matches.isEmpty
+            ? "Could not find any emails matching '\(query)' in the past \(daysBack) day(s)."
+            : "Found \(matches.count) email(s) in the past \(daysBack) day(s)."
+        
         return .success(
             data: [
                 "query": .string(query),
                 "count": .int(matches.count),
                 "messages": .array(messageSummaries)
             ],
-            message: "Found \(matches.count) email(s) in the past \(daysBack) day(s)."
+            message: messageText
         )
     }
     
@@ -263,9 +267,10 @@ public final class MailConnector: Connector, @unchecked Sendable {
     }
     
     private func createDraft(arguments: [String: Any]) throws -> ToolResult {
-        guard let recipient = arguments["recipient"] as? String, Self.isValidEmail(recipient) else {
-            throw ConnectorError.invalidArguments(details: "A valid recipient email address is required")
+        guard let rawRecipient = arguments["recipient"] as? String else {
+            throw ConnectorError.invalidArguments(details: "recipient is required")
         }
+        let recipient = Self.normalizeEmailAddress(rawRecipient)
         guard let subject = arguments["subject"] as? String, !subject.isEmpty else {
             throw ConnectorError.invalidArguments(details: "subject is required")
         }
@@ -301,14 +306,27 @@ public final class MailConnector: Connector, @unchecked Sendable {
     }
     
     private func sendMessage(arguments: [String: Any]) throws -> ToolResult {
-        guard let recipient = arguments["recipient"] as? String, Self.isValidEmail(recipient) else {
-            throw ConnectorError.invalidArguments(details: "A valid recipient email address is required")
+        guard let rawRecipient = arguments["recipient"] as? String else {
+            throw ConnectorError.invalidArguments(details: "recipient is required")
         }
+        let recipient = Self.normalizeEmailAddress(rawRecipient)
         guard let subject = arguments["subject"] as? String, !subject.isEmpty else {
             throw ConnectorError.invalidArguments(details: "subject is required")
         }
         guard let body = arguments["body"] as? String else {
             throw ConnectorError.invalidArguments(details: "body is required")
+        }
+        
+        // If recipient is not a valid email address (e.g. spoken name or placeholder),
+        // fallback gracefully to opening an editable draft in Mail so the user can verify/send.
+        if !Self.isValidEmail(recipient) {
+            var draftArgs = arguments
+            draftArgs["open_in_mail"] = true
+            let draftResult = try createDraft(arguments: draftArgs)
+            return .success(
+                data: draftResult.data,
+                message: "Prepared email draft for '\(recipient)' in Apple Mail."
+            )
         }
         
         let cleanRecipient = Self.escapeAppleScriptString(recipient)
@@ -411,6 +429,18 @@ public final class MailConnector: Connector, @unchecked Sendable {
             .replacingOccurrences(of: "\"", with: "\\\"")
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
+    }
+    
+    public static func normalizeEmailAddress(_ str: String) -> String {
+        var clean = str.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.lowercased().hasPrefix("mailto:") {
+            clean = String(clean.dropFirst(7))
+        }
+        // Normalize common spoken email speech quirks
+        clean = clean.replacingOccurrences(of: " at ", with: "@", options: .caseInsensitive)
+        clean = clean.replacingOccurrences(of: " dot ", with: ".", options: .caseInsensitive)
+        clean = clean.replacingOccurrences(of: "<", with: "").replacingOccurrences(of: ">", with: "")
+        return clean.trimmingCharacters(in: .whitespaces)
     }
     
     public static func isValidEmail(_ email: String) -> Bool {
