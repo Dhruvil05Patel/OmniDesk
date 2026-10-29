@@ -20,17 +20,36 @@ enum AssistantStatus: Equatable {
 @MainActor
 class MainViewModel: ObservableObject {
     
-    @Published var tasks: [TodoTask] = []
+    private let storageKey = "omni_saved_tasks_v1"
+    
+    @Published var tasks: [TodoTask] = [] {
+        didSet {
+            saveTasks()
+        }
+    }
     @Published var status: AssistantStatus = .idle
     @Published var lastRecognizedText: String = ""
     
     private let aiService = AIService()
     
     init() {
-        // Sample welcome task for demonstration
-        self.tasks = [
+        self.tasks = Self.loadStoredTasks()
+    }
+    
+    private static func loadStoredTasks() -> [TodoTask] {
+        if let data = UserDefaults.standard.data(forKey: "omni_saved_tasks_v1"),
+           let saved = try? JSONDecoder().decode([TodoTask].self, from: data) {
+            return saved
+        }
+        return [
             TodoTask(title: "Welcome to OmniDesk! Try voice commands.", isCompleted: false)
         ]
+    }
+    
+    private func saveTasks() {
+        if let data = try? JSONEncoder().encode(tasks) {
+            UserDefaults.standard.set(data, forKey: storageKey)
+        }
     }
     
     func processVoiceInput(_ text: String) {
@@ -54,25 +73,33 @@ class MainViewModel: ObservableObject {
         
         Task {
             if let response = await aiService.parseIntent(from: trimmed) {
-                if response.intent == "create_task" {
-                    let task = TodoTask(
-                        title: response.title ?? trimmed,
-                        date: response.date,
-                        time: response.time
-                    )
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        tasks.insert(task, at: 0)
-                    }
-                    showTemporaryStatus(.actionSuccess("Added: \"\(task.title)\""))
-                } else if response.intent == "create_calendar_event" {
-                    showTemporaryStatus(.actionSuccess("Event scheduled: \"\(response.title ?? trimmed)\""))
+                let parsedTitle = response.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let finalTitle = (parsedTitle?.isEmpty == false ? parsedTitle! : trimmed)
+                
+                let task = TodoTask(
+                    title: finalTitle,
+                    date: response.date,
+                    time: response.time
+                )
+                
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    tasks.insert(task, at: 0)
+                }
+                
+                if response.intent == "create_calendar_event" {
+                    showTemporaryStatus(.actionSuccess("Scheduled: \"\(task.title)\""))
                 } else {
-                    showTemporaryStatus(.actionSuccess("Processed command"))
+                    showTemporaryStatus(.actionSuccess("Added: \"\(task.title)\""))
                 }
                 
                 ActionHandler.handle(response: response)
             } else {
-                showTemporaryStatus(.error("Could not parse command. Try again."))
+                // Resilient fallback: If AI network or parsing fails, always save user's voice dictation as a task
+                let fallbackTask = TodoTask(title: trimmed)
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    tasks.insert(fallbackTask, at: 0)
+                }
+                showTemporaryStatus(.actionSuccess("Added: \"\(fallbackTask.title)\""))
             }
         }
     }

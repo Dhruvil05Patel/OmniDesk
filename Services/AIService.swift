@@ -34,6 +34,7 @@ class AIService {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("OmniDesk/1.0", forHTTPHeaderField: "User-Agent")
         
         // Compact System Prompt with schema definition
         let systemPrompt = """
@@ -68,7 +69,8 @@ class AIService {
             let (data, response) = try await URLSession.shared.data(for: request)
             
             if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                print("❌ Groq API error status: \(http.statusCode)")
+                let errBody = String(data: data, encoding: .utf8) ?? ""
+                print("❌ Groq API error status: \(http.statusCode) - \(errBody)")
                 return nil
             }
             

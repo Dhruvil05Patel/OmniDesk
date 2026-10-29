@@ -77,4 +77,27 @@ struct OmniDeskTests {
         #expect(viewModel.tasks.count == initialCount + 1)
         #expect(viewModel.tasks.first?.title == "Prepare for System Design Interview")
     }
+    
+    @Test func testTaskCodableSerialization() throws {
+        let original = TodoTask(title: "Persistent Task", date: "2026-11-01", time: "14:30")
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(TodoTask.self, from: data)
+        
+        #expect(decoded.id == original.id)
+        #expect(decoded.title == "Persistent Task")
+        #expect(decoded.date == "2026-11-01")
+        #expect(decoded.time == "14:30")
+        #expect(decoded.isCompleted == false)
+    }
+    
+    @Test @MainActor func testViewModelTaskPersistenceAcrossInstances() async throws {
+        let vm1 = MainViewModel()
+        vm1.tasks.removeAll()
+        vm1.addManualTask(title: "Persisted across instances")
+        #expect(vm1.tasks.contains(where: { $0.title == "Persisted across instances" }))
+        
+        // A new instance should load the saved task from UserDefaults
+        let vm2 = MainViewModel()
+        #expect(vm2.tasks.contains(where: { $0.title == "Persisted across instances" }))
+    }
 }
