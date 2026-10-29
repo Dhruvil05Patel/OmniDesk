@@ -81,6 +81,12 @@ public final class SafetyPolicyGate: ObservableObject {
     ) async -> ActionApprovalStatus {
         let description = Self.formatActionDescription(tool: tool, arguments: arguments)
         
+        // Cancel any existing pending confirmation to guarantee continuations never hang
+        if let existing = self.activeRequest {
+            self.activeRequest = nil
+            existing.continuation.resume(returning: false)
+        }
+        
         let approved = await withCheckedContinuation { continuation in
             let request = PendingConfirmationRequest(
                 connectorId: connector.id,
@@ -100,15 +106,15 @@ public final class SafetyPolicyGate: ObservableObject {
     /// Called when the user clicks 'Authorize Action' in the confirmation modal.
     public func approveActiveRequest() {
         guard let req = activeRequest else { return }
-        req.continuation.resume(returning: true)
         activeRequest = nil
+        req.continuation.resume(returning: true)
     }
     
     /// Called when the user clicks 'Cancel' in the confirmation modal.
     public func rejectActiveRequest() {
         guard let req = activeRequest else { return }
-        req.continuation.resume(returning: false)
         activeRequest = nil
+        req.continuation.resume(returning: false)
     }
     
     public static func formatActionDescription(tool: ToolDefinition, arguments: [String: Any]) -> String {
