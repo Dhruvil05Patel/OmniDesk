@@ -94,6 +94,14 @@ struct OmniDeskTests {
         let draftResult = try await ActionHandler.handle(response: draftResponse, handler: customHandler)
         #expect(draftResult?.success == true)
         
+        let searchResponse = AIResponse(
+            intent: "search_email",
+            title: "Find email from recruiter",
+            subject: "recruiter"
+        )
+        let searchResult = try await ActionHandler.handle(response: searchResponse, handler: customHandler)
+        #expect(searchResult?.success == true)
+        
         let unknownResponse = AIResponse(intent: "unknown", title: "gibberish")
         let unknownResult = try await ActionHandler.handle(response: unknownResponse)
         #expect(unknownResult == nil)
@@ -536,6 +544,11 @@ struct OmniDeskTests {
         #expect(MailConnector.isValidEmail("not-an-email") == false)
         #expect(MailConnector.isValidEmail("@missingusername.com") == false)
         
+        // Spoken normalization
+        #expect(MailConnector.normalizeEmailAddress("john at example dot com") == "john@example.com")
+        #expect(MailConnector.normalizeEmailAddress("<test@apple.com>") == "test@apple.com")
+        #expect(MailConnector.normalizeEmailAddress("mailto:recruiter@google.com") == "recruiter@google.com")
+        
         let unescaped = "Hello \"World\" \\ path"
         let escaped = MailConnector.escapeAppleScriptString(unescaped)
         #expect(escaped == "Hello \\\"World\\\" \\\\ path")
@@ -648,6 +661,23 @@ struct OmniDeskTests {
         let apps = handler.connector(for: "com.omnidesk.apps")
         #expect(apps != nil)
         #expect(apps?.displayName == "Installed macOS Apps & Automation")
+    }
+    
+    @Test func testAppControlGenericNameValidation() async throws {
+        let connector = AppControlConnector()
+        do {
+            _ = try await connector.execute(
+                toolName: "apps_terminate",
+                arguments: ["app_name": "an app"]
+            )
+            Issue.record("Expected invalidArguments error for generic 'an app'")
+        } catch let error as ConnectorError {
+            if case .invalidArguments(let details) = error {
+                #expect(details.contains("Please specify which application"))
+            } else {
+                Issue.record("Expected invalidArguments error")
+            }
+        }
     }
     
     // MARK: - Phase 5: Safety Policy Gate, Audit Logger, & MCP Bridge Tests
