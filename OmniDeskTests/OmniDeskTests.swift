@@ -838,4 +838,97 @@ struct OmniDeskTests {
         let malformedResponse = try JSONDecoder().decode(JSONRPCResponse.self, from: malformedData)
         #expect(malformedResponse.error?.code == -32700)
     }
+    
+    @MainActor
+    @Test func testActionHandlerSafetyGateInterception() async throws {
+        let gate = SafetyPolicyGate()
+        let logger = AuditLogger()
+        let handler = ActionHandler(policyGate: gate, auditLogger: logger)
+        
+        let dispatchTask = Task.detached { () -> Result<ToolResult, Error> in
+            do {
+                let res = try await handler.dispatchTool(
+                    named: "apps_terminate",
+                    arguments: ["app_name": "TestApp"]
+                )
+                return .success(res)
+            } catch {
+                return .failure(error)
+            }
+        }
+        
+        // Wait briefly for the gate to receive the request
+        for _ in 0..<50 {
+            if gate.activeRequest != nil { break }
+            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        }
+        
+        #expect(gate.activeRequest != nil)
+        #expect(gate.activeRequest?.toolName == "apps_terminate")
+        #expect(gate.activeRequest?.riskLevel == .destructiveOrOutbound)
+        
+        // Simulate human denial
+        gate.rejectActiveRequest()
+        
+        let outcome = await dispatchTask.value
+        switch outcome {
+        case .success:
+            Issue.record("Expected destructiveActionRejectedByUser error, but action succeeded")
+        case .failure(let err):
+            if case ConnectorError.destructiveActionRejectedByUser = err {
+                // Expected
+            } else {
+                Issue.record("Expected destructiveActionRejectedByUser, got: \(err)")
+            }
+        }
+        
+        let recentLog = logger.fetchRecentLogs().first
+        #expect(recentLog?.approvalStatus == .userRejected)
+        #expect(recentLog?.toolName == "apps_terminate")
+    }
+    
+    @MainActor
+    @Test func testActionHandlerSafetyGateApproval() async throws {
+        let gate = SafetyPolicyGate()
+        let logger = AuditLogger()
+        let handler = ActionHandler(policyGate: gate, auditLogger: logger)
+        
+        let dispatchTask = Task.detached { () -> Result<ToolResult, Error> in
+            do {
+                let res = try await handler.dispatchTool(
+                    named: "apps_terminate",
+                    arguments: ["app_name": "NonExistentAppToTerminate999"]
+                )
+                return .success(res)
+            } catch {
+                return .failure(error)
+            }
+        }
+        
+        // Wait briefly for the gate to receive the request
+        for _ in 0..<50 {
+            if gate.activeRequest != nil { break }
+            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        }
+        
+        #expect(gate.activeRequest != nil)
+        #expect(gate.activeRequest?.toolName == "apps_terminate")
+        
+        // Simulate human authorization
+        gate.approveActiveRequest()
+        
+        let outcome = await dispatchTask.value
+        switch outcome {
+        case .success:
+            break
+        case .failure(let err):
+            if case ConnectorError.targetNotFound = err {
+                // Expected because target app is not running
+            }
+        }
+        
+        let recentLog = logger.fetchRecentLogs().first
+        #expect(recentLog?.approvalStatus == .userApproved)
+        #expect(recentLog?.toolName == "apps_terminate")
+    }
 }
