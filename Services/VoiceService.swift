@@ -100,8 +100,12 @@ class VoiceService: ObservableObject {
             }
         }
         
-        audioEngine.reset()
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
         let inputNode = audioEngine.inputNode
+        inputNode.removeTap(onBus: 0)
+        
         let outputFormat = inputNode.outputFormat(forBus: 0)
         let inputFormat = inputNode.inputFormat(forBus: 0)
         
@@ -113,8 +117,6 @@ class VoiceService: ObservableObject {
         }
         
         let recordingFormat = (outputFormat.sampleRate > 0 && outputFormat.channelCount > 0) ? outputFormat : inputFormat
-        
-        inputNode.removeTap(onBus: 0)
         
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] (buffer: AVAudioPCMBuffer, _: AVAudioTime) in
             guard let self = self else { return }
