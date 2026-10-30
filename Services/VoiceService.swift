@@ -22,6 +22,7 @@ class VoiceService: ObservableObject {
     private let audioEngine = AVAudioEngine()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var isTapInstalled: Bool = false
     
     @Published var recognizedText: String = ""
     @Published var state: VoiceState = .idle
@@ -104,7 +105,10 @@ class VoiceService: ObservableObject {
             audioEngine.stop()
         }
         let inputNode = audioEngine.inputNode
-        inputNode.removeTap(onBus: 0)
+        if isTapInstalled {
+            inputNode.removeTap(onBus: 0)
+            isTapInstalled = false
+        }
         
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         
@@ -136,6 +140,7 @@ class VoiceService: ObservableObject {
                 }
             }
         }
+        isTapInstalled = true
         
         audioEngine.prepare()
         
@@ -145,7 +150,10 @@ class VoiceService: ObservableObject {
         } catch {
             print("❌ Audio Engine Start Error:", error)
             self.state = .permissionDenied("Could not start microphone: \(error.localizedDescription)")
-            inputNode.removeTap(onBus: 0)
+            if isTapInstalled {
+                inputNode.removeTap(onBus: 0)
+                isTapInstalled = false
+            }
         }
     }
     
@@ -153,7 +161,10 @@ class VoiceService: ObservableObject {
         if audioEngine.isRunning {
             audioEngine.stop()
             recognitionRequest?.endAudio()
+        }
+        if isTapInstalled {
             audioEngine.inputNode.removeTap(onBus: 0)
+            isTapInstalled = false
         }
         
         recognitionTask?.cancel()
