@@ -61,8 +61,25 @@ class MainViewModel: ObservableObject {
             return
         }
         
-        // Local Fast-Path (Zero cost, instant execution)
         let lowercased = trimmed.lowercased()
+        
+        // 1. Hands-Free Voice Confirmation Gate Resolver
+        if SafetyPolicyGate.shared.activeRequest != nil {
+            let affirmativeWords = ["yes", "confirm", "approve", "send it", "do it", "proceed", "send", "okay", "ok", "yes please"]
+            let negativeWords = ["no", "cancel", "abort", "reject", "don't send", "stop", "nope"]
+            
+            if affirmativeWords.contains(where: { lowercased.contains($0) }) {
+                SafetyPolicyGate.shared.resolveActiveRequest(approved: true)
+                showTemporaryStatus(.actionSuccess("Action approved by voice."))
+                return
+            } else if negativeWords.contains(where: { lowercased.contains($0) }) {
+                SafetyPolicyGate.shared.resolveActiveRequest(approved: false)
+                showTemporaryStatus(.error("Action cancelled by voice."))
+                return
+            }
+        }
+        
+        // 2. Local Fast-Path (Zero cost, instant execution)
         if lowercased == "clear all tasks" || lowercased == "delete all tasks" || lowercased == "clear tasks" {
             tasks.removeAll()
             showTemporaryStatus(.actionSuccess("All tasks cleared."))
