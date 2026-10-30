@@ -95,6 +95,17 @@ public struct ActionConfirmationModalView: View {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                                     .stroke(Color.omniBorder, lineWidth: 1)
                             )
+                        
+                        // Hands-free voice confirmation badge
+                        HStack(spacing: 5) {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 9))
+                                .foregroundColor(Color.omniAccent)
+                            Text("Say \"Confirm\" or \"Cancel\" to respond hands-free")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(Color.omniTextSecondary)
+                        }
+                        .padding(.top, 2)
                     }
                     
                     // Parameters Breakdown

@@ -103,6 +103,15 @@ public final class SafetyPolicyGate: ObservableObject {
         return approved ? .userApproved : .userRejected
     }
     
+    /// Resolves the active request with either approval or rejection.
+    public func resolveActiveRequest(approved: Bool) {
+        if approved {
+            approveActiveRequest()
+        } else {
+            rejectActiveRequest()
+        }
+    }
+    
     /// Called when the user clicks 'Authorize Action' in the confirmation modal.
     public func approveActiveRequest() {
         guard let req = activeRequest else { return }
