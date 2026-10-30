@@ -788,6 +788,40 @@ struct OmniDeskTests {
     }
     
     @MainActor
+    @Test func testMainViewModelVoiceConfirmationGate() async throws {
+        let viewModel = MainViewModel()
+        let gate = SafetyPolicyGate.shared
+        
+        // Setup a pending confirmation continuation
+        var decision: Bool? = nil
+        let exp = Task {
+            let approved = await withCheckedContinuation { continuation in
+                let req = PendingConfirmationRequest(
+                    connectorId: "com.omnidesk.mail",
+                    toolName: "mail_send_message",
+                    arguments: ["recipient": "test@apple.com"],
+                    riskLevel: .destructiveOrOutbound,
+                    descriptionText: "Send email",
+                    continuation: continuation
+                )
+                gate.activeRequest = req
+            }
+            decision = approved
+        }
+        
+        // Give runloop a fraction of a millisecond to set activeRequest
+        try await Task.sleep(nanoseconds: 20_000_000)
+        #expect(gate.activeRequest != nil)
+        
+        // Process affirmative voice input
+        viewModel.processVoiceInput("yes confirm and send it")
+        
+        _ = await exp.result
+        #expect(decision == true)
+        #expect(gate.activeRequest == nil)
+    }
+    
+    @MainActor
     @Test func testMCPServerBridgeInitialize() async throws {
         let bridge = MCPServerBridge()
         let requestJSON = """
