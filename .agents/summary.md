@@ -3,8 +3,8 @@
 
 **Document Location:** `.agents/summary.md`  
 **Latest Update:** 2026-11-01  
-**Current Branch:** `feature/resident-assistant`  
-**Test Suite Status:** 46 / 46 Tests Passing (`** TEST SUCCEEDED **`)
+**Current Branch:** `fix/audio-runtime-warnings`  
+**Test Suite Status:** 48 / 48 Tests Passing (`** TEST SUCCEEDED **`)
 
 ---
 
@@ -197,17 +197,22 @@ OmniDesk implements a native JSON-RPC 2.0 MCP server over standard input/output 
 | "Failed to send terminate signal" | Single-tier `NSRunningApplication.terminate()` failed on unresponsive apps or apps without AppKit runloops. | Implemented three-tier termination (NSRunApp ➔ AppleScript ➔ POSIX SIGTERM). |
 | "Couldn't find the email it said" | Voice dictation transcribed email addresses as phonetic words (`"john dot doe at gmail dot com"`). | Added `MailConnector.normalizeEmailAddress` regex parser with graceful contact name fallback. |
 | `Invalid attempt to open a new transaction during CA commit` | Programmatically toggling modal display while SwiftUI popover dismissal animation was in-flight. | Decoupled modal state triggers from popover dismiss cycles via `DispatchQueue.main.asyncAfter`. |
+| `AVAudioBuffer.mm:291 mBuffers[0].mDataByteSize (0)` | Zero-byte PCM buffers delivered to `SFSpeechAudioBufferRecognitionRequest.append(buffer)`. | Added strict pre-flight buffer byte checks in the audio tap callback. |
+| CoreAudio `throwing -10877` | AUHAL thrown during format negotiation on uninitialized input node. | Used `format: nil` in `installTap` to let AVFoundation natively negotiate hardware bus format. |
+| `AudioQueue underflow #1..#6` | Output audio queue starved when `audioEngine.start()` reconfigures HAL hardware mid-drain. | Added 250ms hardware audio drain barrier in `WakeAcknowledgementPlayer`. |
+| `unsafeForcedSync called from Swift Concurrent context` | Un-isolated `VoiceService` calls and `AVSpeechSynthesisVoice` synchronous XPC lookups inside async tasks. | Added `@MainActor` to `VoiceService`, statically cached voice instance, decoupled visualizer metering. |
+| `Reporter disconnected or already stopped` / `AUCrashHandler.mm:126` | Concurrently calling `stopRecording()` without an atomic state machine. | Implemented idempotent `stopRecording()` guarding state transitions. |
 
 ---
 
 ## 8. Verification & Test Suite
 
-All 40 automated unit tests pass cleanly via `xcodebuild test`:
+All 48 automated unit tests pass cleanly via `xcodebuild test`:
 ```bash
 xcodebuild test -project OmniDesk.xcodeproj -scheme OmniDesk -destination 'platform=macOS' -only-testing:OmniDeskTests
 ```
 ```text
-** TEST SUCCEEDED ** [40 tests passed in 0.812 seconds]
+** TEST SUCCEEDED ** [48 tests passed]
 ```
 
 ### Key Verified Test Suites
