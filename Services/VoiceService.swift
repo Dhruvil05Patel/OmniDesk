@@ -18,6 +18,8 @@ enum VoiceState: Equatable {
 
 class VoiceService: ObservableObject {
     
+    public static let shared = VoiceService()
+    
     private let speechRecognizer = SFSpeechRecognizer()
     private let audioEngine = AVAudioEngine()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -101,13 +103,13 @@ class VoiceService: ObservableObject {
             }
         }
         
-        if audioEngine.isRunning {
-            audioEngine.stop()
-        }
         let inputNode = audioEngine.inputNode
         if isTapInstalled {
             inputNode.removeTap(onBus: 0)
             isTapInstalled = false
+        }
+        if audioEngine.isRunning {
+            audioEngine.stop()
         }
         
         let recordingFormat = inputNode.outputFormat(forBus: 0)
@@ -121,6 +123,7 @@ class VoiceService: ObservableObject {
         
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] (buffer: AVAudioPCMBuffer, _: AVAudioTime) in
             guard let self = self else { return }
+            guard buffer.frameLength > 0 else { return }
             request.append(buffer)
             
             // Calculate RMS power for audio level meter
@@ -158,13 +161,13 @@ class VoiceService: ObservableObject {
     }
     
     func stopRecording() {
-        if audioEngine.isRunning {
-            audioEngine.stop()
-            recognitionRequest?.endAudio()
-        }
         if isTapInstalled {
             audioEngine.inputNode.removeTap(onBus: 0)
             isTapInstalled = false
+        }
+        if audioEngine.isRunning {
+            audioEngine.stop()
+            recognitionRequest?.endAudio()
         }
         
         recognitionTask?.cancel()

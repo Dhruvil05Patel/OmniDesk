@@ -242,33 +242,75 @@ public final class AppControlConnector: Connector, @unchecked Sendable {
         )
     }
     
+    /// Cleans conversational speech artifacts (e.g. "the Preview app" -> "Preview", "previous" -> "Preview").
+    public static func sanitizeAppName(_ raw: String) -> String {
+        var name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        var lower = name.lowercased()
+        
+        // Strip common conversational prefixes
+        if lower.hasPrefix("the ") {
+            name = String(name.dropFirst(4)).trimmingCharacters(in: .whitespaces)
+            lower = name.lowercased()
+        } else if lower.hasPrefix("an ") {
+            name = String(name.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+            lower = name.lowercased()
+        }
+        
+        // Strip common conversational suffixes
+        if lower.hasSuffix(" application") {
+            name = String(name.dropLast(12)).trimmingCharacters(in: .whitespaces)
+            lower = name.lowercased()
+        } else if lower.hasSuffix(" app") {
+            name = String(name.dropLast(4)).trimmingCharacters(in: .whitespaces)
+            lower = name.lowercased()
+        } else if lower.hasSuffix(".app") {
+            name = String(name.dropLast(4)).trimmingCharacters(in: .whitespaces)
+            lower = name.lowercased()
+        }
+        
+        if lower == "app" || lower == "application" {
+            name = ""
+        }
+        
+        // Speech-to-text misrecognition phonetics for common macOS apps
+        if name.lowercased() == "previous" || name.lowercased() == "preview" {
+            name = "Preview"
+        }
+        
+        return name
+    }
+    
     private func launchOrFocusApp(arguments: [String: Any]) async throws -> ToolResult {
         guard let appName = arguments["app_name"] as? String, !appName.trimmingCharacters(in: .whitespaces).isEmpty else {
             throw ConnectorError.invalidArguments(details: "app_name is required for apps_launch_or_focus")
         }
+        let sanitizedName = Self.sanitizeAppName(appName)
         let bringToFront = arguments["bring_to_front"] as? Bool ?? true
         
         // Check if already running
         if let existing = workspace.runningApplications.first(where: {
-            $0.localizedName?.localizedCaseInsensitiveContains(appName) == true ||
-            $0.bundleIdentifier?.localizedCaseInsensitiveContains(appName) == true
+            guard let locName = $0.localizedName else { return false }
+            return locName.localizedCaseInsensitiveCompare(sanitizedName) == .orderedSame ||
+                   locName.localizedCaseInsensitiveContains(sanitizedName) ||
+                   sanitizedName.localizedCaseInsensitiveContains(locName) ||
+                   $0.bundleIdentifier?.localizedCaseInsensitiveContains(sanitizedName) == true
         }) {
             if bringToFront {
                 existing.activate(options: [.activateIgnoringOtherApps])
             }
             return .success(
                 data: [
-                    "app_name": .string(existing.localizedName ?? appName),
+                    "app_name": .string(existing.localizedName ?? sanitizedName),
                     "pid": .int(Int(existing.processIdentifier)),
                     "state": .string("focused")
                 ],
-                message: "Brought '\(existing.localizedName ?? appName)' to the front."
+                message: "Brought '\(existing.localizedName ?? sanitizedName)' to the front."
             )
         }
         
         // Find installed application URL
-        guard let appURL = Self.findApplicationURL(named: appName) else {
-            throw ConnectorError.targetNotFound(identifier: "Application matching '\(appName)' not found in application directories.")
+        guard let appURL = Self.findApplicationURL(named: sanitizedName) else {
+            throw ConnectorError.targetNotFound(identifier: "Application matching '\(sanitizedName)' not found in application directories.")
         }
         
         let config = NSWorkspace.OpenConfiguration()
@@ -278,12 +320,12 @@ public final class AppControlConnector: Connector, @unchecked Sendable {
             let app = try await workspace.openApplication(at: appURL, configuration: config)
             return .success(
                 data: [
-                    "app_name": .string(app.localizedName ?? appName),
+                    "app_name": .string(app.localizedName ?? sanitizedName),
                     "bundle_id": .string(app.bundleIdentifier ?? ""),
                     "pid": .int(Int(app.processIdentifier)),
                     "state": .string("launched")
                 ],
-                message: "Launched '\(app.localizedName ?? appName)' successfully."
+                message: "Launched '\(app.localizedName ?? sanitizedName)' successfully."
             )
         } catch {
             throw ConnectorError.systemFailure(underlyingMessage: "Failed to open application: \(error.localizedDescription)")
@@ -295,29 +337,36 @@ public final class AppControlConnector: Connector, @unchecked Sendable {
             throw ConnectorError.invalidArguments(details: "app_name is required for apps_terminate")
         }
         
-        let trimmedName = appName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lower = trimmedName.lowercased()
-        if lower == "an app" || lower == "app" || lower == "the app" || lower == "quit an app" {
+        let sanitizedName = Self.sanitizeAppName(appName)
+        let lower = sanitizedName.lowercased()
+        if lower == "an app" || lower == "app" || lower == "the app" || lower == "quit an app" || lower.isEmpty {
             throw ConnectorError.invalidArguments(details: "Please specify which application to quit (e.g. 'Quit Safari' or 'Close Slack').")
         }
         
         let force = arguments["force"] as? Bool ?? false
         
-        // Match priority: 1) Exact match, 2) Prefix match, 3) Substring match
+        // Match priority: 1) Exact match, 2) Prefix match, 3) Bidirectional Substring match
         let runningApps = workspace.runningApplications
         guard let target = runningApps.first(where: {
-            $0.localizedName?.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame ||
-            $0.bundleIdentifier?.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame
+            $0.localizedName?.localizedCaseInsensitiveCompare(sanitizedName) == .orderedSame ||
+            $0.bundleIdentifier?.localizedCaseInsensitiveCompare(sanitizedName) == .orderedSame
         }) ?? runningApps.first(where: {
             $0.localizedName?.lowercased().hasPrefix(lower) == true
         }) ?? runningApps.first(where: {
-            $0.localizedName?.localizedCaseInsensitiveContains(trimmedName) == true ||
-            $0.bundleIdentifier?.localizedCaseInsensitiveContains(trimmedName) == true
+            guard let locName = $0.localizedName else { return false }
+            return locName.localizedCaseInsensitiveContains(sanitizedName) ||
+                   sanitizedName.localizedCaseInsensitiveContains(locName) ||
+                   $0.bundleIdentifier?.localizedCaseInsensitiveContains(sanitizedName) == true
         }) else {
-            throw ConnectorError.targetNotFound(identifier: "Running process '\(trimmedName)' not found.")
+            // Check if installed but not running to provide clear conversational feedback
+            if Self.findApplicationURL(named: sanitizedName) != nil {
+                throw ConnectorError.targetNotFound(identifier: "'\(sanitizedName)' is not currently running.")
+            } else {
+                throw ConnectorError.targetNotFound(identifier: "Running process '\(sanitizedName)' not found.")
+            }
         }
         
-        let finalName = target.localizedName ?? trimmedName
+        let finalName = target.localizedName ?? sanitizedName
         
         // Multi-tier progressive termination strategy
         // Tier 1: NSRunningApplication graceful or forced termination
@@ -493,12 +542,16 @@ public final class AppControlConnector: Connector, @unchecked Sendable {
     }
     
     public static func findApplicationURL(named name: String) -> URL? {
+        let sanitized = sanitizeAppName(name)
         let all = discoverInstalledApplications()
-        if let exact = all.first(where: { $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame }) {
+        if let exact = all.first(where: { $0.name.localizedCaseInsensitiveCompare(sanitized) == .orderedSame }) {
             return URL(fileURLWithPath: exact.path)
         }
-        if let prefix = all.first(where: { $0.name.localizedCaseInsensitiveContains(name) }) {
-            return URL(fileURLWithPath: prefix.path)
+        if let matched = all.first(where: {
+            $0.name.localizedCaseInsensitiveContains(sanitized) ||
+            sanitized.localizedCaseInsensitiveContains($0.name)
+        }) {
+            return URL(fileURLWithPath: matched.path)
         }
         return nil
     }

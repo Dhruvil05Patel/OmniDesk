@@ -16,7 +16,7 @@ public final class ActionHandler: @unchecked Sendable {
     public let policyGate: SafetyPolicyGate
     public let auditLogger: AuditLogger
     private var connectors: [String: any Connector] = [:]
-    private let queue = DispatchQueue(label: "com.omnidesk.actionhandler", attributes: .concurrent)
+    private let lock = NSLock()
     
     public init(
         policyGate: SafetyPolicyGate = .shared,
@@ -42,21 +42,21 @@ public final class ActionHandler: @unchecked Sendable {
     }
     
     public func register(connector: any Connector) {
-        queue.async(flags: .barrier) {
-            self.connectors[connector.id] = connector
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        self.connectors[connector.id] = connector
     }
     
     public func connector(for id: String) -> (any Connector)? {
-        queue.sync {
-            self.connectors[id]
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        return self.connectors[id]
     }
     
     public var allConnectors: [any Connector] {
-        queue.sync {
-            Array(self.connectors.values)
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        return Array(self.connectors.values)
     }
     
     /// Executes a tool on a specific connector by ID.
@@ -191,6 +191,7 @@ public final class ActionHandler: @unchecked Sendable {
                     app = title
                 }
             }
+            app = AppControlConnector.sanitizeAppName(app)
             return try await handler.dispatchTool(
                 named: "apps_terminate",
                 arguments: ["app_name": app]
@@ -208,6 +209,7 @@ public final class ActionHandler: @unchecked Sendable {
                     app = title
                 }
             }
+            app = AppControlConnector.sanitizeAppName(app)
             return try await handler.dispatchTool(
                 named: "apps_launch_or_focus",
                 arguments: ["app_name": app]
