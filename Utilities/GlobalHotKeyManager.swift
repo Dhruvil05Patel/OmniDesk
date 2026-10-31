@@ -16,13 +16,15 @@ public final class GlobalHotKeyManager {
     
     private var hotKeyRef: EventHotKeyRef?
     private var muteHotKeyRef: EventHotKeyRef?
+    private var assistantHotKeyRef: EventHotKeyRef?
     private var eventHandler: EventHandlerRef?
     private var onTrigger: (@MainActor () -> Void)?
     private var onMuteTrigger: (@MainActor () -> Void)?
+    private var onAssistantTrigger: (@MainActor () -> Void)?
     
     private init() {}
     
-    /// Registers a global hotkey (default: Option + Space = Keycode 49 with optionKey).
+    /// Registers a global hotkey (default: Option + Space = Keycode 49 with optionKey) to toggle the panel.
     public func registerDefaultHotKey(onTrigger: @escaping @MainActor () -> Void) {
         self.onTrigger = onTrigger
         setupEventHandlerIfNeeded()
@@ -42,6 +44,29 @@ public final class GlobalHotKeyManager {
         
         if status != noErr {
             print("⚠️ [GlobalHotKeyManager] Failed to register Option+Space hotkey, error code:", status)
+        }
+    }
+    
+    /// Registers the voice copilot activation hotkey (Command + Option + O = Keycode 31).
+    public func registerAssistantHotKey(onTrigger: @escaping @MainActor () -> Void) {
+        self.onAssistantTrigger = onTrigger
+        setupEventHandlerIfNeeded()
+        
+        let hotKeyID = EventHotKeyID(signature: OSType(0x4F4D4E49), id: 3) // 'OMNI' id 3
+        let modifiers = UInt32(cmdKey | optionKey)
+        let keyCode = UInt32(kVK_ANSI_O) // 31
+        
+        let status = RegisterEventHotKey(
+            keyCode,
+            modifiers,
+            hotKeyID,
+            GetEventDispatcherTarget(),
+            0,
+            &assistantHotKeyRef
+        )
+        
+        if status != noErr {
+            print("⚠️ [GlobalHotKeyManager] Failed to register Cmd+Opt+O assistant hotkey, error code:", status)
         }
     }
     
@@ -103,6 +128,10 @@ public final class GlobalHotKeyManager {
                     Task { @MainActor in
                         manager.onMuteTrigger?()
                     }
+                } else if hotKeyID.id == 3 {
+                    Task { @MainActor in
+                        manager.onAssistantTrigger?()
+                    }
                 }
                 return noErr
             },
@@ -121,6 +150,10 @@ public final class GlobalHotKeyManager {
         if let ref = muteHotKeyRef {
             UnregisterEventHotKey(ref)
             muteHotKeyRef = nil
+        }
+        if let ref = assistantHotKeyRef {
+            UnregisterEventHotKey(ref)
+            assistantHotKeyRef = nil
         }
         if let handler = eventHandler {
             RemoveEventHandler(handler)

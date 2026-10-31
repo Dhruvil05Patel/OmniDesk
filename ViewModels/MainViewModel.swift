@@ -119,6 +119,8 @@ class MainViewModel: ObservableObject {
                         tasks.insert(task, at: 0)
                     }
                     showTemporaryStatus(.actionSuccess("Added: \"\(task.title)\""))
+                    WakeAcknowledgementPlayer.shared.speakText("Added task: \(task.title)")
+                    VoiceActivationEngine.shared.transition(to: .listening)
                 }
                 
                 // Dispatch live connector tool
@@ -126,19 +128,26 @@ class MainViewModel: ObservableObject {
                     if let result = try await ActionHandler.handle(response: response) {
                         let feedback = result.message ?? "Action completed"
                         showTemporaryStatus(.actionSuccess(feedback))
+                        WakeAcknowledgementPlayer.shared.speakText(feedback)
+                        VoiceActivationEngine.shared.transition(to: .listening)
                     } else if response.intent != "create_task" {
                         let fallback = TodoTask(title: finalTitle)
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             tasks.insert(fallback, at: 0)
                         }
                         showTemporaryStatus(.actionSuccess("Added: \"\(fallback.title)\""))
+                        WakeAcknowledgementPlayer.shared.speakText("Added task: \(fallback.title)")
+                        VoiceActivationEngine.shared.transition(to: .listening)
                     }
                 } catch {
                     if case ConnectorError.destructiveActionRejectedByUser = error {
                         showTemporaryStatus(.error("Action cancelled by user"))
+                        WakeAcknowledgementPlayer.shared.speakText("Action cancelled")
                     } else {
                         showTemporaryStatus(.error(error.localizedDescription))
+                        WakeAcknowledgementPlayer.shared.speakText("Error: \(error.localizedDescription)")
                     }
+                    VoiceActivationEngine.shared.transition(to: .listening)
                 }
             } else {
                 // Resilient fallback: If AI network or parsing fails, always save user's voice dictation as a task
@@ -147,6 +156,8 @@ class MainViewModel: ObservableObject {
                     tasks.insert(fallbackTask, at: 0)
                 }
                 showTemporaryStatus(.actionSuccess("Added: \"\(fallbackTask.title)\""))
+                WakeAcknowledgementPlayer.shared.speakText("Added task: \(fallbackTask.title)")
+                VoiceActivationEngine.shared.transition(to: .listening)
             }
         }
     }

@@ -18,6 +18,8 @@ enum VoiceState: Equatable {
 
 class VoiceService: ObservableObject {
     
+    public static let shared = VoiceService()
+    
     private let speechRecognizer = SFSpeechRecognizer()
     private let audioEngine = AVAudioEngine()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?

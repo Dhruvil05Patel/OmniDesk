@@ -19,15 +19,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DynamicIslandPanelController.shared.toggleExpanded()
         }
         
+        GlobalHotKeyManager.shared.registerAssistantHotKey {
+            VoiceActivationEngine.shared.triggerHotkeyActivation()
+        }
+        
         GlobalHotKeyManager.shared.registerMuteHotKey {
             VoiceActivationEngine.shared.toggleMute()
         }
-        
-        VoiceActivationEngine.shared.startEngine()
     }
     
     func applicationWillTerminate(_ notification: Notification) {
-        VoiceActivationEngine.shared.stopEngine()
+        VoiceActivationEngine.shared.concludeCommandRecording()
         SafetyPolicyGate.shared.abortAllPendingRequests()
         GlobalHotKeyManager.shared.unregister()
     }
