@@ -80,6 +80,7 @@ struct OmniDeskTests {
         }
         
         let customGate = SafetyPolicyGate()
+        customGate.autoApproveReversibleActions = true
         let customLogger = AuditLogger()
         let customHandler = ActionHandler(policyGate: customGate, auditLogger: customLogger)
         customHandler.register(connector: MailConnector(runner: MockVoiceMailRunner()))
@@ -793,9 +794,9 @@ struct OmniDeskTests {
         let gate = SafetyPolicyGate.shared
         
         // Setup a pending confirmation continuation
-        var decision: Bool? = nil
+        var decision: ActionApprovalStatus? = nil
         let exp = Task {
-            let approved = await withCheckedContinuation { continuation in
+            let res = await withCheckedContinuation { continuation in
                 let req = PendingConfirmationRequest(
                     connectorId: "com.omnidesk.mail",
                     toolName: "mail_send_message",
@@ -806,7 +807,7 @@ struct OmniDeskTests {
                 )
                 gate.activeRequest = req
             }
-            decision = approved
+            decision = res.status
         }
         
         // Give runloop a fraction of a millisecond to set activeRequest
@@ -817,7 +818,7 @@ struct OmniDeskTests {
         viewModel.processVoiceInput("yes confirm and send it")
         
         _ = await exp.result
-        #expect(decision == true)
+        #expect(decision == .userApproved)
         #expect(gate.activeRequest == nil)
     }
     
@@ -1047,5 +1048,232 @@ struct OmniDeskTests {
         let recentLog = logger.fetchRecentLogs().first
         #expect(recentLog?.approvalStatus == .userApproved)
         #expect(recentLog?.toolName == "apps_terminate")
+    }
+    
+    @MainActor
+    @Test func testSafetyGateAutoDenyOnTimeout() async throws {
+        let gate = SafetyPolicyGate()
+        gate.defaultTimeoutSeconds = 1
+        
+        let mailTool = ToolDefinition(
+            name: "mail_send_message",
+            description: "Send email",
+            riskLevel: .destructiveOrOutbound,
+            parameters: ToolParameterSchema(description: "params", properties: nil, required: nil)
+        )
+        
+        final class DummyConnector: Connector, @unchecked Sendable {
+            let id = "com.omnidesk.test"
+            let displayName = "Test Connector"
+            let connectorDescription = "Connector for testing"
+            let tools: [ToolDefinition] = []
+            func checkPermissionState() async -> ConnectorPermissionStatus { .authorized }
+            func requestPermissions() async -> Bool { true }
+            func execute(toolName: String, arguments: [String: Any]) async throws -> ToolResult {
+                return ToolResult.success(message: "ok")
+            }
+        }
+        
+        let connector = DummyConnector()
+        
+        let evalTask = Task { @MainActor in
+            await gate.evaluatePolicy(connector: connector, tool: mailTool, arguments: [:])
+        }
+        
+        for _ in 0..<30 {
+            if gate.activeRequest != nil { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        #expect(gate.activeRequest != nil)
+        
+        // Timer fires and rejects
+        let status = await evalTask.value
+        #expect(status == .timedOut)
+        #expect(gate.activeRequest == nil)
+    }
+    
+    @MainActor
+    @Test func testSafetyGateParameterEditing() async throws {
+        let gate = SafetyPolicyGate()
+        var editResult: ApprovalDecisionResult?
+        
+        let task = Task { @MainActor in
+            let res = await withCheckedContinuation { continuation in
+                let req = PendingConfirmationRequest(
+                    connectorId: "com.omnidesk.mail",
+                    toolName: "mail_send_message",
+                    arguments: ["recipient": "alice@apple.com"],
+                    riskLevel: .destructiveOrOutbound,
+                    descriptionText: "Send email to alice@apple.com",
+                    continuation: continuation
+                )
+                gate.activeRequest = req
+            }
+            editResult = res
+        }
+        
+        try await Task.sleep(nanoseconds: 20_000_000)
+        #expect(gate.activeRequest != nil)
+        
+        gate.resolveActiveRequestWithEdit(newArguments: ["recipient": "bob@apple.com", "subject": "Updated"])
+        
+        _ = await task.result
+        #expect(editResult?.status == .editedAndApproved)
+        #expect(editResult?.modifiedArguments?["recipient"] as? String == "bob@apple.com")
+        #expect(editResult?.modifiedArguments?["subject"] as? String == "Updated")
+        #expect(gate.activeRequest == nil)
+    }
+    
+    @MainActor
+    @Test func testSessionApprovalStoreWhitelist() async throws {
+        let gate = SafetyPolicyGate()
+        
+        let reversibleTool = ToolDefinition(
+            name: "calendar_create_event",
+            description: "Create calendar event",
+            riskLevel: .reversibleWrite,
+            parameters: ToolParameterSchema(description: "params", properties: nil, required: nil)
+        )
+        
+        final class DummyConnector: Connector, @unchecked Sendable {
+            let id = "com.omnidesk.calendar"
+            let displayName = "Calendar"
+            let connectorDescription = "Calendar connector for testing"
+            let tools: [ToolDefinition] = []
+            func checkPermissionState() async -> ConnectorPermissionStatus { .authorized }
+            func requestPermissions() async -> Bool { true }
+            func execute(toolName: String, arguments: [String: Any]) async throws -> ToolResult {
+                return ToolResult.success(message: "ok")
+            }
+        }
+        let connector = DummyConnector()
+        
+        // 1. Reversible action can be session whitelisted
+        let task1 = Task { @MainActor in
+            await gate.evaluatePolicy(connector: connector, tool: reversibleTool, arguments: ["title": "Standup"])
+        }
+        
+        try await Task.sleep(nanoseconds: 20_000_000)
+        #expect(gate.activeRequest != nil)
+        #expect(gate.activeRequest?.allowsSessionWhitelist == true)
+        
+        gate.allowForSession()
+        let result1 = await task1.value
+        #expect(result1 == .sessionWhitelisted)
+        #expect(gate.sessionWhitelist.contains("com.omnidesk.calendar:calendar_create_event"))
+        
+        // Second invocation of the same tool should be auto-whitelisted without activeRequest
+        let result2 = await gate.evaluatePolicy(connector: connector, tool: reversibleTool, arguments: ["title": "Planning"])
+        #expect(result2 == .sessionWhitelisted)
+        #expect(gate.activeRequest == nil)
+        
+        // 2. Destructive/outbound action strictly rejects session whitelist and performs standard approval
+        let destructiveTool = ToolDefinition(
+            name: "apps_terminate",
+            description: "Quit app",
+            riskLevel: .destructiveOrOutbound,
+            parameters: ToolParameterSchema(description: "params", properties: nil, required: nil)
+        )
+        
+        let task2 = Task { @MainActor in
+            await gate.evaluatePolicy(connector: connector, tool: destructiveTool, arguments: ["app_name": "Music"])
+        }
+        
+        try await Task.sleep(nanoseconds: 20_000_000)
+        #expect(gate.activeRequest != nil)
+        #expect(gate.activeRequest?.allowsSessionWhitelist == false)
+        
+        gate.allowForSession() // Attempts whitelist on destructive
+        let result3 = await task2.value
+        #expect(result3 == .userApproved) // Fallback to standard approval
+        #expect(!gate.sessionWhitelist.contains("com.omnidesk.calendar:apps_terminate"))
+        
+        // 3. Clear session whitelist
+        gate.clearSessionWhitelist()
+        #expect(gate.sessionWhitelist.isEmpty)
+    }
+    
+    @Test func testAuditLoggerJSONLFilePersistence() throws {
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempFile = tempDir.appendingPathComponent("audit_test_\(UUID().uuidString).jsonl")
+        defer { try? FileManager.default.removeItem(at: tempFile) }
+        
+        let logger = AuditLogger(customLogURL: tempFile)
+        logger.record(
+            connectorId: "com.omnidesk.mail",
+            toolName: "mail_send_message",
+            arguments: ["recipient": "test@apple.com", "subject": "Hello"],
+            riskLevel: .destructiveOrOutbound,
+            approvalStatus: .editedAndApproved,
+            durationMs: 124.5,
+            success: true
+        )
+        
+        // Wait briefly for the file to be written
+        for _ in 0..<30 {
+            if FileManager.default.fileExists(atPath: tempFile.path) { break }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        
+        let logs = logger.fetchRecentLogs()
+        #expect(logs.contains(where: { $0.approvalStatus == .editedAndApproved && $0.toolName == "mail_send_message" }))
+        
+        // Verify JSONL file exists and is valid JSON
+        #expect(FileManager.default.fileExists(atPath: tempFile.path))
+        let fileContents = try String(contentsOf: tempFile, encoding: .utf8)
+        #expect(fileContents.contains("mail_send_message"))
+        #expect(fileContents.contains("edited_and_approved"))
+    }
+    
+    @MainActor
+    @Test func testScreenNotchDetectionLogic() throws {
+        let mainScreen = NSScreen.main
+        #expect(mainScreen != nil)
+        
+        if let screen = mainScreen {
+            let hasNotch = screen.hasHardwareNotch
+            let notchRect = screen.notchRect
+            
+            if hasNotch {
+                #expect(notchRect != nil)
+                if let rect = notchRect {
+                    #expect(rect.width > 0)
+                    #expect(rect.height > 0)
+                    #expect(rect.origin.y >= 0)
+                }
+            } else {
+                #expect(notchRect == nil)
+            }
+        }
+    }
+    
+    @MainActor
+    @Test func testAbortAllPendingRequests() async throws {
+        let gate = SafetyPolicyGate()
+        var status: ActionApprovalStatus?
+        
+        let task = Task { @MainActor in
+            let res = await withCheckedContinuation { continuation in
+                let req = PendingConfirmationRequest(
+                    connectorId: "com.omnidesk.system",
+                    toolName: "system_shutdown",
+                    arguments: [:],
+                    riskLevel: .destructiveOrOutbound,
+                    descriptionText: "Shutdown",
+                    continuation: continuation
+                )
+                gate.activeRequest = req
+            }
+            status = res.status
+        }
+        
+        try await Task.sleep(nanoseconds: 20_000_000)
+        #expect(gate.activeRequest != nil)
+        
+        gate.abortAllPendingRequests()
+        
+        _ = await task.result
+        #expect(status == .userRejected)
+        #expect(gate.activeRequest == nil)
     }
 }
