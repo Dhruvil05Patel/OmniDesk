@@ -335,4 +335,36 @@ final class VoiceActivationTests: XCTestCase {
         XCTAssertEqual(decision, .userApproved)
         XCTAssertNil(gate.activeRequest)
     }
+    
+    // MARK: - 11. Audio Runtime Warning Regression Tests
+    
+    @MainActor
+    func testVoiceServiceIdempotentStop() {
+        let voiceService = VoiceService.shared
+        XCTAssertEqual(voiceService.state, .idle)
+        
+        // Calling stopRecording multiple times when idle must be a safe, idempotent no-op
+        voiceService.stopRecording()
+        voiceService.stopRecording()
+        voiceService.stopRecording()
+        XCTAssertEqual(voiceService.state, .idle)
+        XCTAssertEqual(voiceService.audioLevel, 0.0)
+    }
+    
+    @MainActor
+    func testWakeAcknowledgementVoiceCachingAndDrainBarrier() async {
+        let player = WakeAcknowledgementPlayer.shared
+        XCTAssertFalse(player.isAudioOutputPlaying)
+        
+        // Calling stopAllPlayback resets audio lock cleanly
+        player.stopAllPlayback()
+        XCTAssertFalse(player.isAudioOutputPlaying)
+        
+        // Empty text immediately invokes completion without audio queue starvation
+        var completed = false
+        player.speakText("") {
+            completed = true
+        }
+        XCTAssertTrue(completed)
+    }
 }
