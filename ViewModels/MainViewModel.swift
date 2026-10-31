@@ -52,6 +52,25 @@ class MainViewModel: ObservableObject {
         }
     }
     
+    @discardableResult
+    public func handleActiveVoiceApprovalInput(_ text: String) -> Bool {
+        guard SafetyPolicyGate.shared.activeRequest != nil else { return false }
+        let lowercased = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let affirmativeWords = ["yes", "confirm", "approve", "send it", "do it", "proceed", "send", "okay", "ok", "yes please"]
+        let negativeWords = ["no", "cancel", "abort", "reject", "don't send", "stop", "nope"]
+        
+        if affirmativeWords.contains(where: { lowercased.contains($0) }) {
+            SafetyPolicyGate.shared.resolveActiveRequest(approved: true)
+            showTemporaryStatus(.actionSuccess("Action approved by voice."))
+            return true
+        } else if negativeWords.contains(where: { lowercased.contains($0) }) {
+            SafetyPolicyGate.shared.resolveActiveRequest(approved: false)
+            showTemporaryStatus(.error("Action cancelled by voice."))
+            return true
+        }
+        return false
+    }
+    
     func processVoiceInput(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         lastRecognizedText = trimmed
@@ -64,19 +83,8 @@ class MainViewModel: ObservableObject {
         let lowercased = trimmed.lowercased()
         
         // 1. Hands-Free Voice Confirmation Gate Resolver
-        if SafetyPolicyGate.shared.activeRequest != nil {
-            let affirmativeWords = ["yes", "confirm", "approve", "send it", "do it", "proceed", "send", "okay", "ok", "yes please"]
-            let negativeWords = ["no", "cancel", "abort", "reject", "don't send", "stop", "nope"]
-            
-            if affirmativeWords.contains(where: { lowercased.contains($0) }) {
-                SafetyPolicyGate.shared.resolveActiveRequest(approved: true)
-                showTemporaryStatus(.actionSuccess("Action approved by voice."))
-                return
-            } else if negativeWords.contains(where: { lowercased.contains($0) }) {
-                SafetyPolicyGate.shared.resolveActiveRequest(approved: false)
-                showTemporaryStatus(.error("Action cancelled by voice."))
-                return
-            }
+        if handleActiveVoiceApprovalInput(lowercased) {
+            return
         }
         
         // 2. Local Fast-Path (Zero cost, instant execution)

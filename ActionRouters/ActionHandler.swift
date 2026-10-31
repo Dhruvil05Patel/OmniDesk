@@ -94,14 +94,14 @@ public final class ActionHandler: @unchecked Sendable {
             arguments: arguments
         )
         
-        guard approval == .autoApproved || approval == .userApproved else {
+        guard approval.isApproved else {
             let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
             auditLogger.record(
                 connectorId: connector.id,
                 toolName: tool.name,
                 arguments: arguments,
                 riskLevel: tool.riskLevel,
-                approvalStatus: .userRejected,
+                approvalStatus: approval,
                 durationMs: duration,
                 success: false,
                 errorMessage: "Action rejected by user."

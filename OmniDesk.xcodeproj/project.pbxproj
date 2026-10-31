@@ -29,6 +29,11 @@
 		A1BBBCD22F7B3124001216C9 /* ActionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCCE2F7B2C97001216C9 /* ActionHandler.swift */; };
 		A1BBBCC22F7B3124001216C9 /* ConnectorProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCC12F7B2C97001216C9 /* ConnectorProtocol.swift */; };
 		A1BBBCBD2F7B2017001216C9 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCBC2F7B2017001216C9 /* DesignTokens.swift */; };
+		A1DIP0022F7B3200001216C9 /* DynamicIslandPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1DIP0012F7B3200001216C9 /* DynamicIslandPanelController.swift */; };
+		A1DIC0022F7B3200001216C9 /* DynamicIslandContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1DIC0012F7B3200001216C9 /* DynamicIslandContainerView.swift */; };
+		A1MIC0022F7B3200001216C9 /* MenuBarExtraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1MIC0012F7B3200001216C9 /* MenuBarExtraController.swift */; };
+		A1GHK0022F7B3200001216C9 /* GlobalHotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1GHK0012F7B3200001216C9 /* GlobalHotKeyManager.swift */; };
+		A1LIM0022F7B3200001216C9 /* LoginItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LIM0012F7B3200001216C9 /* LoginItemManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +80,11 @@
 		A1BBBCC12F7B2C97001216C9 /* ConnectorProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectorProtocol.swift; sourceTree = "<group>"; };
 		A1BBBCCF2F7B2DF9001216C9 /* AIResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIResponse.swift; sourceTree = "<group>"; };
 		A1BBBCBC2F7B2017001216C9 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		A1DIP0012F7B3200001216C9 /* DynamicIslandPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandPanelController.swift; sourceTree = "<group>"; };
+		A1DIC0012F7B3200001216C9 /* DynamicIslandContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandContainerView.swift; sourceTree = "<group>"; };
+		A1MIC0012F7B3200001216C9 /* MenuBarExtraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarExtraController.swift; sourceTree = "<group>"; };
+		A1GHK0012F7B3200001216C9 /* GlobalHotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotKeyManager.swift; sourceTree = "<group>"; };
+		A1LIM0012F7B3200001216C9 /* LoginItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -137,6 +147,7 @@
 			isa = PBXGroup;
 			children = (
 				A119CEEE309117EC003CFC07 /* Secrets.xcconfig */,
+				A1CTRGRP2F7B3200001216C9 /* Controllers */,
 				A1BBBCCD2F7B2C87001216C9 /* ActionRouters */,
 				A1BBBCBC2F7B2037001216C9 /* App */,
 				A1BBBCBB2F7B2027001216C9 /* Assets */,
@@ -169,6 +180,7 @@
 				A1BBBCAE2F7B1F85001216C9 /* TaskListView.swift */,
 				A1BBBC7F2F7B05D0001216C9 /* DashboardView.swift */,
 				A1BBBSM12F7B2C97001216C9 /* ActionConfirmationModalView.swift */,
+				A1DIC0012F7B3200001216C9 /* DynamicIslandContainerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -212,8 +224,19 @@
 			children = (
 				A1BBBCBA2F7B2017001216C9 /* Permissions.swift */,
 				A1BBBCBC2F7B2017001216C9 /* DesignTokens.swift */,
+				A1GHK0012F7B3200001216C9 /* GlobalHotKeyManager.swift */,
+				A1LIM0012F7B3200001216C9 /* LoginItemManager.swift */,
 			);
 			path = Utilities;
+			sourceTree = "<group>";
+		};
+		A1CTRGRP2F7B3200001216C9 /* Controllers */ = {
+			isa = PBXGroup;
+			children = (
+				A1DIP0012F7B3200001216C9 /* DynamicIslandPanelController.swift */,
+				A1MIC0012F7B3200001216C9 /* MenuBarExtraController.swift */,
+			);
+			path = Controllers;
 			sourceTree = "<group>";
 		};
 		A1BBBCBB2F7B2027001216C9 /* Assets */ = {
@@ -406,6 +429,11 @@
 				A1BBBCC22F7B3124001216C9 /* ConnectorProtocol.swift in Sources */,
 				A1BBBCAF2F7B1F85001216C9 /* TaskListView.swift in Sources */,
 				A1BBBCBD2F7B2017001216C9 /* DesignTokens.swift in Sources */,
+				A1DIP0022F7B3200001216C9 /* DynamicIslandPanelController.swift in Sources */,
+				A1DIC0022F7B3200001216C9 /* DynamicIslandContainerView.swift in Sources */,
+				A1MIC0022F7B3200001216C9 /* MenuBarExtraController.swift in Sources */,
+				A1GHK0022F7B3200001216C9 /* GlobalHotKeyManager.swift in Sources */,
+				A1LIM0022F7B3200001216C9 /* LoginItemManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

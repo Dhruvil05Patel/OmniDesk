@@ -2,9 +2,9 @@
 ## Architectural Blueprint, System Specification & Project Roadmap
 
 **Document Location:** `.agents/summary.md`  
-**Latest Update:** 2026-10-30  
-**Current Branch:** `connector`  
-**Test Suite Status:** 40 / 40 Tests Passing (`** TEST SUCCEEDED **`)
+**Latest Update:** 2026-11-01  
+**Current Branch:** `feature/resident-assistant`  
+**Test Suite Status:** 46 / 46 Tests Passing (`** TEST SUCCEEDED **`)
 
 ---
 
@@ -235,14 +235,17 @@ gantt
     Zero-Trust Safety Gate & Modal View    :done, p2_2, 2026-10-29, 2026-10-30
     Hands-Free Voice Confirmation Flow     :done, p2_3, 2026-10-30, 2026-10-30
     CoreAudio -10877 & Sandbox Removal     :done, p2_4, 2026-10-30, 2026-10-30
-    section Phase 3: Persistence & Career
-    SwiftData Local-First Persistence      :active, p3_1, 2026-11-01, 2026-11-12
-    Internship & Career Pipeline Tracker   :p3_2, 2026-11-10, 2026-11-20
-    Gmail OAuth 2.0 & Cloud Sync           :p3_3, 2026-11-18, 2026-11-30
-    section Phase 4: Ambient Polish
-    AVSpeechSynthesizer Voice Feedback     :p4_1, 2026-12-01, 2026-12-10
-    macOS Menu Bar Extra (NSStatusItem)    :p4_2, 2026-12-10, 2026-12-20
-    Global Activation Hotkey Daemon        :p4_3, 2026-12-20, 2026-12-30
+    section Phase 3: Resident Assistant & Approval Gate
+    Accessory App (LSUIElement & SMAppService) :done, p3_1, 2026-10-31, 2026-11-01
+    Dynamic Island Notch Panel (NSPanel)      :done, p3_2, 2026-10-31, 2026-11-01
+    Fallback Menu Bar Extra (NSStatusItem)    :done, p3_3, 2026-10-31, 2026-11-01
+    Carbon Global Hotkey (Opt+Space)          :done, p3_4, 2026-10-31, 2026-11-01
+    4-Way Approval Gate & JSONL Audit Log     :done, p3_5, 2026-10-31, 2026-11-01
+    section Phase 4: Persistence & Ambient Polish
+    SwiftData Local-First Persistence         :active, p4_1, 2026-11-02, 2026-11-15
+    Internship & Career Pipeline Tracker      :p4_2, 2026-11-15, 2026-11-25
+    Gmail OAuth 2.0 & Cloud Sync              :p4_3, 2026-11-25, 2026-12-05
+    AVSpeechSynthesizer Voice Feedback        :p4_4, 2026-12-05, 2026-12-15
 ```
 
 ### Detailed Next Priorities
@@ -252,5 +255,3 @@ gantt
    - Dedicated dashboard view for monitoring active applications, stages (Applied, Screen, Technical, Offer), and recruiter follow-ups.
 3. **Auditory Confirmation Feedback**:
    - Integrate `AVSpeechSynthesizer` to vocalize short task completions (e.g., *"Event created for 3 PM"*, *"Closing Slack now"*) for a truly ambient, screenless experience.
-4. **macOS Menu Bar Extra (`NSStatusItem`)**:
-   - Run OmniDesk persistently in the menu bar with a global keyboard shortcut (e.g., `⌥ Space`) to summon the assistant from any desktop or full-screen app.
