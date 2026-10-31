@@ -68,8 +68,8 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         
         // 2. High-quality system speech synthesizer fallback
         let utterance = AVSpeechUtterance(string: phraseToSpeak)
-        utterance.rate = 0.55 // Natural, brisk response
-        utterance.pitchMultiplier = 1.05
+        utterance.rate = 0.46 // Natural, calm conversational rate
+        utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
         
         // Select preferred English voice
@@ -91,7 +91,8 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         self.isAudioOutputPlaying = true
         
         let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.52
+        utterance.rate = 0.46 // Natural, calm conversational rate
+        utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
         if let voice = AVSpeechSynthesisVoice(language: "en-US") {
             utterance.voice = voice
