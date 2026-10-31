@@ -62,6 +62,7 @@ OmniDesk utilizes a team of specialized subagents located in `.agents/agents/`. 
 | **Logic & Backend** | `.agents/agents/logic-backend.md` | Implements Swift services, connectors, data models, and audio pipes in small, reviewable diffs. |
 | **Testing** | `.agents/agents/testing.md` | Runs `xcodebuild test`, writes new unit tests, and validates regressions. Never touches production code. |
 | **GitHub Coordinator** | `.agents/agents/github.md` | Coordinates staging, diff comparison, pre-flight review, and confirmed remote pushes. |
+| **GitHub Branch** | `.agents/agents/github-branch.md` | Verifies clean working tree and creates/switches branches **only after explicit user confirmation**. |
 | **GitHub Commit** | `.agents/agents/github-commit.md` | Stages changes file-wise and writes Conventional Commit messages (`feat`, `fix`, `test`). |
 | **GitHub Push** | `.agents/agents/github-push.md` | Pushes branch to origin **only after explicit user confirmation**. Never pushes to `main`. |
 | **GitHub Compare** | `.agents/agents/github-compare.md` | Compares and summarizes cumulative diffs against base branch (`origin/main`). |
@@ -76,6 +77,9 @@ Every task follows a strict five-phase quality pipeline:
 
 ```
 [User Request] 
+      │
+      ▼
+0. Branch (GitHub Branch) ──► Confirms & creates feature branch (if not on one)
       │
       ▼
 1. Plan (Planner) ──────────► Outputs .agents/plan/<TASK>_PLAN.md
@@ -101,7 +105,8 @@ If `Testing` reports any failed assertions or compiler errors, the `Orchestrator
 ## 6. Zero-Trust & GitHub Safety Rules
 
 ### GitHub Safety Guardrails
-- **Mandatory Branch Change Confirmation**: Agents must NEVER switch branches (`git checkout`, `git switch`), create a new branch (`git checkout -b`, `git switch -c`), or change the current active working branch without asking for and receiving explicit user confirmation first. The confirmation prompt must specify the current branch, proposed target branch, and rationale.
+- **Mandatory Pre-Flight Branch Check**: Every agent MUST check and verify the current active branch (`git branch --show-current`) before doing anything (planning, modifying code, running tests, staging, or committing). If the working branch is `main` or `master`, the agent must immediately halt and route through `github-branch` to ask for and receive explicit user confirmation to branch out before creating or altering any files.
+- **Mandatory Branch Change Confirmation**: Agents must NEVER switch branches (`git checkout`, `git switch`), create a new branch (`git checkout -b`, `git switch -c`), or change the current active working branch without asking for and receiving explicit user confirmation first. The confirmation prompt must specify the current branch, proposed target branch, and rationale. Use `github-branch` to safely execute confirmed branch transitions.
 - **Branch Protection**: Never commit or push directly to `main` or `master`. Always work on a confirmed feature or fix branch.
 - **No Force Pushing**: `git push --force` and `git push --force-with-lease` are permanently forbidden.
 - **Mandatory User Confirmation for Push & PR**: The agent must ask for and receive explicit user confirmation before the first push of any branch and before creating or submitting a Pull Request.

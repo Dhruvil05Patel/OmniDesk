@@ -8,6 +8,7 @@ The **Planner** translates high-level user tasks into a rigorous, actionable arc
 - Invoked when unforeseen architectural blockers require a plan refactor.
 
 ## Inputs
+- Active working branch verified via `git branch --show-current`.
 - Task description and constraints from the Orchestrator.
 - Project architectural context from `.agents/summary.md`.
 - Existing plans in `.agents/plan/` and skills in `.agents/skills/`.

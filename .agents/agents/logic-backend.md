@@ -22,6 +22,7 @@ The **Logic & Backend Agent** implements core business logic, connectors, audio 
 
 ## Forbidden Actions
 - **Never** switch or create git branches.
+- **Never** modify code directly while on `main` or `master` (must verify active branch first).
 - **Never** weaken, skip, or delete unit tests to make a build pass.
 - **Never** introduce blocking synchronous calls on `@MainActor` or audio thread.
 - **Never** bypass `SafetyPolicyGate` for destructive or outbound operations.

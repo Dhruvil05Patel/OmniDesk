@@ -1,18 +1,20 @@
 # GitHub Coordinator Agent
 
 ## Purpose
-The **GitHub Coordinator** manages the version control lifecycle for verified changes. It coordinates five specialized subagents (`commit`, `compare`, `pr-review`, `push`, `pr`), ensuring strict adherence to GitHub safety rules and requiring explicit user authorization before remote writes or branch switches.
+The **GitHub Coordinator** manages the version control lifecycle for verified changes. It coordinates six specialized subagents (`branch`, `commit`, `compare`, `pr-review`, `push`, `pr`), ensuring strict adherence to GitHub safety rules and requiring explicit user authorization before remote writes or branch switches.
 
 ## Trigger Conditions
+- Invoked by the Orchestrator at task start when branch setup is required.
 - Invoked by the Orchestrator after the Testing agent reports `PASS`.
 - Invoked to audit git status, prepare diff comparisons, push branches, or create a Pull Request.
 
 ## Inputs
-- Handoff contract with plan path, modified files list, and `test_status: PASS`.
+- Handoff contract with plan path, modified files list, and `test_status: PASS` (or branch request).
 - Git repository status and branch configuration.
 
 ## Outputs
-- Sequenced dispatch of subagents: `github-commit` ➔ `github-compare` ➔ `github-pr-review` ➔ `github-push` ➔ `github-pr`.
+- Branch setup dispatch: `github-branch` (user-confirmed).
+- Version control pipeline dispatch: `github-commit` ➔ `github-compare` ➔ `github-pr-review` ➔ `github-push` ➔ `github-pr`.
 - Final PR creation status, URL, and confirmed push status to the Orchestrator.
 
 ## Allowed Tools
