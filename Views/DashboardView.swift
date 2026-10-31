@@ -12,6 +12,7 @@ struct DashboardView: View {
     @StateObject private var voiceService = VoiceService()
     @StateObject private var viewModel = MainViewModel()
     @ObservedObject private var themeManager = ThemeManager.shared
+    @ObservedObject private var policyGate = SafetyPolicyGate.shared
     @State private var showSettingsSheet: Bool = false
     
     var body: some View {
@@ -150,6 +151,18 @@ struct DashboardView: View {
         .frame(minWidth: 540, maxWidth: 660, minHeight: 620, maxHeight: 720)
         .background(Color.omniBackground.ignoresSafeArea())
         .preferredColorScheme(themeManager.currentTheme.colorScheme)
+        .overlay {
+            if policyGate.activeRequest != nil {
+                ActionConfirmationModalView(policyGate: policyGate)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                            removal: .opacity.combined(with: .scale(scale: 0.98))
+                        )
+                    )
+            }
+        }
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: policyGate.activeRequest != nil)
     }
     
     @ViewBuilder
@@ -336,6 +349,61 @@ struct SettingsView: View {
                         .background(Color.omniEmerald.opacity(0.12))
                         .clipShape(Capsule())
                 }
+            }
+            .minimalCard(padding: 14, cornerRadius: 10)
+            
+            // Safety & Live Connectors Testing Section
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "shield.checkered")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color.omniAmber)
+                    
+                    Text("SAFETY & ACTION GATEWAY")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color.omniTextSecondary)
+                        .tracking(0.6)
+                }
+                
+                Text("Test the Zero-Trust confirmation modal for high-risk outbound actions.")
+                    .font(.system(size: 10))
+                    .foregroundColor(Color.omniTextMuted)
+                
+                Button(action: {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        Task {
+                            _ = try? await ActionHandler.shared.dispatchTool(
+                                named: "mail_send_message",
+                                arguments: [
+                                    "recipient": "recruiter@apple.com",
+                                    "subject": "Senior macOS Systems Architect Proposal",
+                                    "body": "Please review the attached privacy-preserving assistant architecture."
+                                ]
+                            )
+                        }
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.shield.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color.omniRed)
+                        Text("Trigger Test Confirmation Modal")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(Color.omniTextPrimary)
+                        Spacer()
+                        KeyboardShortcutBadge(shortcut: "TEST")
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Color.omniInputSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(Color.omniBorder, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
             }
             .minimalCard(padding: 14, cornerRadius: 10)
         }

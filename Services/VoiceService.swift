@@ -22,6 +22,7 @@ class VoiceService: ObservableObject {
     private let audioEngine = AVAudioEngine()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var isTapInstalled: Bool = false
     
     @Published var recognizedText: String = ""
     @Published var state: VoiceState = .idle
@@ -100,21 +101,23 @@ class VoiceService: ObservableObject {
             }
         }
         
-        audioEngine.reset()
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
         let inputNode = audioEngine.inputNode
-        let outputFormat = inputNode.outputFormat(forBus: 0)
-        let inputFormat = inputNode.inputFormat(forBus: 0)
+        if isTapInstalled {
+            inputNode.removeTap(onBus: 0)
+            isTapInstalled = false
+        }
+        
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
         
         // Guard against uninitialized / sandbox-restricted audio hardware
-        guard outputFormat.sampleRate > 0 || inputFormat.sampleRate > 0 else {
+        guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else {
             print("❌ CoreAudio device not ready. SampleRate is 0.")
             self.state = .permissionDenied("Microphone not ready. Please check System Settings > Privacy & Security > Microphone.")
             return
         }
-        
-        let recordingFormat = (outputFormat.sampleRate > 0 && outputFormat.channelCount > 0) ? outputFormat : inputFormat
-        
-        inputNode.removeTap(onBus: 0)
         
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] (buffer: AVAudioPCMBuffer, _: AVAudioTime) in
             guard let self = self else { return }
@@ -137,6 +140,7 @@ class VoiceService: ObservableObject {
                 }
             }
         }
+        isTapInstalled = true
         
         audioEngine.prepare()
         
@@ -146,7 +150,10 @@ class VoiceService: ObservableObject {
         } catch {
             print("❌ Audio Engine Start Error:", error)
             self.state = .permissionDenied("Could not start microphone: \(error.localizedDescription)")
-            inputNode.removeTap(onBus: 0)
+            if isTapInstalled {
+                inputNode.removeTap(onBus: 0)
+                isTapInstalled = false
+            }
         }
     }
     
@@ -154,7 +161,10 @@ class VoiceService: ObservableObject {
         if audioEngine.isRunning {
             audioEngine.stop()
             recognitionRequest?.endAudio()
+        }
+        if isTapInstalled {
             audioEngine.inputNode.removeTap(onBus: 0)
+            isTapInstalled = false
         }
         
         recognitionTask?.cancel()

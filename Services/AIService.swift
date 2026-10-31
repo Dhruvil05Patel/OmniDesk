@@ -38,13 +38,26 @@ class AIService {
         
         // Compact System Prompt with schema definition
         let systemPrompt = """
-        You are an intent classifier. Output ONLY valid JSON matching this schema:
-        {"intent":"create_task"|"create_calendar_event"|"unknown","title":"string","date":"YYYY-MM-DD"|null,"time":"HH:mm"|null}
+        You are an intelligent macOS action classifier and router. Output ONLY valid JSON matching this schema:
+        {
+          "intent": "create_task" | "create_calendar_event" | "send_email" | "create_email_draft" | "search_email" | "launch_app" | "close_app" | "search_notes" | "create_note" | "unknown",
+          "title": "concise summary string or null",
+          "date": "YYYY-MM-DD or null",
+          "time": "HH:mm or null",
+          "recipient": "recipient email address or null",
+          "subject": "email subject or null",
+          "body": "email body or note content or null",
+          "appName": "target macOS application name like Safari, Slack, Mail, Notes or null"
+        }
         Rules:
-        - If user mentions specific date or time -> "create_calendar_event".
-        - Otherwise -> "create_task".
-        - Title must be a concise, cleaned summary without filler words.
-        - Output strictly JSON without explanations or markdown formatting.
+        - If user asks to send an email ("send email to...", "email john about...") -> "send_email".
+        - If user asks to draft an email ("draft email...", "write email...") -> "create_email_draft".
+        - If user asks to quit, terminate, or close an app ("quit Slack", "close Safari", "terminate Notes") -> "close_app".
+        - If user asks to open or switch to an app ("open Safari", "launch Slack") -> "launch_app".
+        - If user asks to search or take notes in Obsidian ("create note...", "write note...") -> "create_note".
+        - If user mentions specific date or time to schedule an event -> "create_calendar_event".
+        - Otherwise, if it's a general to-do item -> "create_task".
+        - Output strictly JSON without explanations or markdown backticks.
         """
         
         let body: [String: Any] = [
