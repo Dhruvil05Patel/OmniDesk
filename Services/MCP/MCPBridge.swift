@@ -202,14 +202,14 @@ public final class MCPServerBridge: Sendable {
         
         // Policy Gate Evaluation
         let approval = await policyGate.evaluatePolicy(connector: connector, tool: toolDef, arguments: argumentsDict)
-        guard approval == .autoApproved || approval == .userApproved else {
+        guard approval.isApproved else {
             let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
             auditLogger.record(
                 connectorId: connector.id,
                 toolName: toolName,
                 arguments: argumentsDict,
                 riskLevel: toolDef.riskLevel,
-                approvalStatus: .userRejected,
+                approvalStatus: approval,
                 durationMs: duration,
                 success: false,
                 errorMessage: "Action rejected by user."

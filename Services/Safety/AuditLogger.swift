@@ -6,13 +6,25 @@
 //
 
 import Foundation
+import CryptoKit
 
 /// Status of user authorization for an audited tool action.
 public enum ActionApprovalStatus: String, Codable, Sendable {
-    case autoApproved = "auto_approved"
-    case userApproved = "user_approved"
-    case userRejected = "user_rejected"
-    case timedOut     = "timed_out"
+    case autoApproved        = "auto_approved"
+    case userApproved        = "user_approved"
+    case userRejected        = "user_rejected"
+    case editedAndApproved   = "edited_and_approved"
+    case sessionWhitelisted  = "session_whitelisted"
+    case timedOut            = "timed_out"
+    
+    public var isApproved: Bool {
+        switch self {
+        case .autoApproved, .userApproved, .sessionWhitelisted, .editedAndApproved:
+            return true
+        case .userRejected, .timedOut:
+            return false
+        }
+    }
 }
 
 /// A structured immutable record of an executed or attempted tool action.
@@ -22,6 +34,7 @@ public struct AuditLogEntry: Identifiable, Codable, Sendable, Equatable {
     public let connectorId: String
     public let toolName: String
     public let parametersSummary: String
+    public let payloadSha256: String
     public let riskLevel: ActionRiskLevel
     public let approvalStatus: ActionApprovalStatus
     public let durationMs: Double
@@ -34,6 +47,7 @@ public struct AuditLogEntry: Identifiable, Codable, Sendable, Equatable {
         connectorId: String,
         toolName: String,
         parametersSummary: String,
+        payloadSha256: String = "",
         riskLevel: ActionRiskLevel,
         approvalStatus: ActionApprovalStatus,
         durationMs: Double,
@@ -45,6 +59,7 @@ public struct AuditLogEntry: Identifiable, Codable, Sendable, Equatable {
         self.connectorId = connectorId
         self.toolName = toolName
         self.parametersSummary = parametersSummary
+        self.payloadSha256 = payloadSha256
         self.riskLevel = riskLevel
         self.approvalStatus = approvalStatus
         self.durationMs = durationMs
@@ -53,7 +68,7 @@ public struct AuditLogEntry: Identifiable, Codable, Sendable, Equatable {
     }
 }
 
-/// Thread-safe local audit logging system recording every tool invocation.
+/// Thread-safe local audit logging system recording every tool invocation to memory and ~/Library/Logs/OmniDesk/audit.jsonl.
 public final class AuditLogger: @unchecked Sendable {
     
     public static let shared = AuditLogger()
@@ -63,7 +78,19 @@ public final class AuditLogger: @unchecked Sendable {
     private let storageKey = "OmniDeskAuditLogs"
     private let maxEntries = 200
     
-    public init() {
+    public let logFileURL: URL
+    
+    public init(customLogURL: URL? = nil) {
+        if let custom = customLogURL {
+            self.logFileURL = custom
+        } else {
+            let logsDir = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library", isDirectory: true)
+                .appendingPathComponent("Logs", isDirectory: true)
+                .appendingPathComponent("OmniDesk", isDirectory: true)
+            try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
+            self.logFileURL = logsDir.appendingPathComponent("audit.jsonl")
+        }
         loadPersistedLogs()
     }
     
@@ -78,10 +105,12 @@ public final class AuditLogger: @unchecked Sendable {
         errorMessage: String? = nil
     ) {
         let summary = Self.formatArgumentsSummary(arguments)
+        let hash = Self.computeSha256(arguments)
         let entry = AuditLogEntry(
             connectorId: connectorId,
             toolName: toolName,
             parametersSummary: summary,
+            payloadSha256: hash,
             riskLevel: riskLevel,
             approvalStatus: approvalStatus,
             durationMs: durationMs,
@@ -95,6 +124,7 @@ public final class AuditLogger: @unchecked Sendable {
                 self.inMemoryLogs.removeLast(self.inMemoryLogs.count - self.maxEntries)
             }
             self.persistLogs()
+            self.appendToFile(entry: entry)
         }
     }
     
@@ -108,10 +138,31 @@ public final class AuditLogger: @unchecked Sendable {
         queue.async(flags: .barrier) {
             self.inMemoryLogs.removeAll()
             UserDefaults.standard.removeObject(forKey: self.storageKey)
+            try? FileManager.default.removeItem(at: self.logFileURL)
         }
     }
     
-    // MARK: - Persistence & Formatting
+    // MARK: - Persistence & JSON Lines
+    
+    private func appendToFile(entry: AuditLogEntry) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(entry),
+              var line = String(data: data, encoding: .utf8) else { return }
+        line.append("\n")
+        
+        if let lineData = line.data(using: .utf8) {
+            if FileManager.default.fileExists(atPath: logFileURL.path) {
+                if let fileHandle = try? FileHandle(forWritingTo: logFileURL) {
+                    fileHandle.seekToEndOfFile()
+                    fileHandle.write(lineData)
+                    try? fileHandle.close()
+                }
+            } else {
+                try? lineData.write(to: logFileURL, options: .atomic)
+            }
+        }
+    }
     
     private func persistLogs() {
         if let encoded = try? JSONEncoder().encode(self.inMemoryLogs) {
@@ -126,9 +177,17 @@ public final class AuditLogger: @unchecked Sendable {
         }
     }
     
+    public static func computeSha256(_ arguments: [String: Any]) -> String {
+        guard let data = try? JSONSerialization.data(withJSONObject: arguments, options: [.sortedKeys]) else {
+            return "00000000"
+        }
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02hhx", $0) }.joined()
+    }
+    
     public static func formatArgumentsSummary(_ arguments: [String: Any]) -> String {
         guard !arguments.isEmpty else { return "{}" }
-        let pairs = arguments.map { key, value in
+        let pairs = arguments.sorted(by: { $0.key < $1.key }).map { key, value in
             let desc = String(describing: value)
             let truncated = desc.count > 60 ? String(desc.prefix(57)) + "..." : desc
             return "\(key): \(truncated)"
