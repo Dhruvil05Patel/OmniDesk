@@ -72,6 +72,7 @@ public final class SafetyPolicyGate: ObservableObject {
     
     public var autoApproveReversibleActions: Bool = false
     public var defaultTimeoutSeconds: Int = 60
+    public var onConfirmationPromptRequested: ((PendingConfirmationRequest) -> Void)?
     
     private var countdownTimer: Timer?
     private var requestQueue: [() -> Void] = []
@@ -133,6 +134,7 @@ public final class SafetyPolicyGate: ObservableObject {
             )
             self.activeRequest = request
             self.startTimer()
+            self.onConfirmationPromptRequested?(request)
         }
         
         stopTimer()

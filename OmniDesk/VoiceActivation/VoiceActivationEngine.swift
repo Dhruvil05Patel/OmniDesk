@@ -125,7 +125,7 @@ public final class VoiceActivationEngine: ObservableObject {
     
     // MARK: - Command Recording Lifecycle
     
-    private func beginCommandRecording() {
+    public func beginCommandRecording() {
         guard !isMuted else {
             transition(to: .muted)
             return

@@ -35,11 +35,26 @@ class MainViewModel: ObservableObject {
     init() {
         self.tasks = Self.loadStoredTasks()
         setupVoiceActivationEngine()
+        setupSafetyGateVoiceBridge()
     }
     
     private func setupVoiceActivationEngine() {
         VoiceActivationEngine.shared.onCommandCaptured = { [weak self] command in
             self?.processVoiceInput(command)
+        }
+    }
+    
+    private func setupSafetyGateVoiceBridge() {
+        SafetyPolicyGate.shared.onConfirmationPromptRequested = { [weak self] request in
+            guard let self = self else { return }
+            DynamicIslandPanelController.shared.setExpanded(true)
+            VoiceActivationEngine.shared.transition(to: .awaitingApproval)
+            
+            let spokenPrompt = "Confirmation needed: \(request.descriptionText). Say yes to confirm or no to cancel."
+            WakeAcknowledgementPlayer.shared.speakText(spokenPrompt) {
+                // Re-arm recording so user can speak "yes" / "no"
+                VoiceActivationEngine.shared.beginCommandRecording()
+            }
         }
     }
     
@@ -63,16 +78,20 @@ class MainViewModel: ObservableObject {
     public func handleActiveVoiceApprovalInput(_ text: String) -> Bool {
         guard SafetyPolicyGate.shared.activeRequest != nil else { return false }
         let lowercased = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let affirmativeWords = ["yes", "confirm", "approve", "send it", "do it", "proceed", "send", "okay", "ok", "yes please"]
-        let negativeWords = ["no", "cancel", "abort", "reject", "don't send", "stop", "nope"]
+        let affirmativeWords = ["yes", "confirm", "approve", "send it", "do it", "proceed", "send", "okay", "ok", "yes please", "close", "close it", "quit", "quit it", "terminate", "terminate it"]
+        let negativeWords = ["no", "cancel", "abort", "reject", "don't send", "stop", "nope", "don't", "don't quit", "don't close"]
         
         if affirmativeWords.contains(where: { lowercased.contains($0) }) {
+            VoiceService.shared.stopRecording()
             SafetyPolicyGate.shared.resolveActiveRequest(approved: true)
             showTemporaryStatus(.actionSuccess("Action approved by voice."))
             return true
         } else if negativeWords.contains(where: { lowercased.contains($0) }) {
+            VoiceService.shared.stopRecording()
             SafetyPolicyGate.shared.resolveActiveRequest(approved: false)
             showTemporaryStatus(.error("Action cancelled by voice."))
+            WakeAcknowledgementPlayer.shared.speakText("Action cancelled")
+            VoiceActivationEngine.shared.transition(to: .listening)
             return true
         }
         return false
@@ -140,13 +159,18 @@ class MainViewModel: ObservableObject {
                         VoiceActivationEngine.shared.transition(to: .listening)
                     }
                 } catch {
+                    let feedback: String
                     if case ConnectorError.destructiveActionRejectedByUser = error {
                         showTemporaryStatus(.error("Action cancelled by user"))
-                        WakeAcknowledgementPlayer.shared.speakText("Action cancelled")
+                        feedback = "Action cancelled"
+                    } else if case ConnectorError.targetNotFound(let id) = error {
+                        showTemporaryStatus(.error(id))
+                        feedback = id
                     } else {
                         showTemporaryStatus(.error(error.localizedDescription))
-                        WakeAcknowledgementPlayer.shared.speakText("Error: \(error.localizedDescription)")
+                        feedback = "Error: \(error.localizedDescription)"
                     }
+                    WakeAcknowledgementPlayer.shared.speakText(feedback)
                     VoiceActivationEngine.shared.transition(to: .listening)
                 }
             } else {
