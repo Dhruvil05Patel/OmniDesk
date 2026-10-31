@@ -20,6 +20,7 @@ The **GitHub Compare Subagent** inspects and summarizes the cumulative branch di
 - `read_file`
 
 ## Forbidden Actions
+- **Never** switch branches (`git checkout`, `git switch`) or create new branches.
 - **Never** modify the git working tree, stage files, or alter git index.
 - **Never** perform network fetches or push operations.
 - **Never** suppress unexpected diffs (every modified file must be accounted for).

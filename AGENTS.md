@@ -66,6 +66,7 @@ OmniDesk utilizes a team of specialized subagents located in `.agents/agents/`. 
 | **GitHub Push** | `.agents/agents/github-push.md` | Pushes branch to origin **only after explicit user confirmation**. Never pushes to `main`. |
 | **GitHub Compare** | `.agents/agents/github-compare.md` | Compares and summarizes cumulative diffs against base branch (`origin/main`). |
 | **GitHub PR Review** | `.agents/agents/github-pr-review.md` | Audits diff for bugs and secrets; drafts markdown Pull Request description. |
+| **GitHub PR** | `.agents/agents/github-pr.md` | Verifies mergeability and creates Pull Request **only after explicit user confirmation**. |
 
 ---
 
@@ -89,7 +90,7 @@ Every task follows a strict five-phase quality pipeline:
 4. Test (Testing) ──────────► Executes xcodebuild test (Loopback to Logic on FAIL)
       │ (PASS: 0 Failures)
       ▼
-5. GitHub Coordinator ──────► Commit (file-wise) ➔ Compare ➔ Review ➔ Push (confirmed)
+5. GitHub Coordinator ──────► Commit ➔ Compare ➔ Review ➔ Push (confirmed) ➔ PR (confirmed)
 ```
 
 ### Loopback Rule
@@ -100,9 +101,11 @@ If `Testing` reports any failed assertions or compiler errors, the `Orchestrator
 ## 6. Zero-Trust & GitHub Safety Rules
 
 ### GitHub Safety Guardrails
-- **Branch Protection**: Never commit or push directly to `main` or `master`. Always work on a feature or fix branch.
+- **Mandatory Branch Change Confirmation**: Agents must NEVER switch branches (`git checkout`, `git switch`), create a new branch (`git checkout -b`, `git switch -c`), or change the current active working branch without asking for and receiving explicit user confirmation first. The confirmation prompt must specify the current branch, proposed target branch, and rationale.
+- **Branch Protection**: Never commit or push directly to `main` or `master`. Always work on a confirmed feature or fix branch.
 - **No Force Pushing**: `git push --force` and `git push --force-with-lease` are permanently forbidden.
-- **Mandatory User Confirmation**: The agent must ask for and receive explicit user confirmation before the first push of any branch and before creating a PR.
+- **Mandatory User Confirmation for Push & PR**: The agent must ask for and receive explicit user confirmation before the first push of any branch and before creating or submitting a Pull Request.
+- **Conflict-Free PR Verification**: Before opening a Pull Request, `github-pr` must verify zero merge conflicts against the target base branch using `git merge-tree`.
 - **Secret Sanitization**: Never stage or commit `Secrets.xcconfig`, `.env`, API keys, or private tokens. Always check `git diff --cached` before committing.
 - **No Monolithic Commits**: Commit phase-wise and file-wise with Conventional Commit messages.
 

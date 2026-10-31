@@ -20,6 +20,7 @@ The **GitHub Push Subagent** handles publishing feature branches to the remote r
 - `ask_question` (prompt user for explicit push confirmation)
 
 ## Forbidden Actions
+- **Never** switch branches (`git checkout`, `git switch`) or create new branches.
 - **Never** push directly to `main` or `master`.
 - **Never** push without receiving explicit user approval ("Yes" / Confirm).
 - **Never** use `--force` or `--force-with-lease`.
@@ -35,10 +36,10 @@ handoff_contract:
   task_name: "<Task Name>"
   plan_path: ".agents/plan/<TASK>_PLAN.md"
   current_agent: "github-push"
-  next_agent: "orchestrator"
-  status: "COMPLETED"
+  next_agent: "github-pr"
+  status: "PUSH_COMPLETED"
   files_touched: []
   test_status: "PASS"
   open_issues: []
-  notes_for_next_agent: "Branch pushed successfully to remote. Task complete."
+  notes_for_next_agent: "Branch pushed successfully to remote. Proceed to conflict check and PR creation."
 ```

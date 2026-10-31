@@ -23,6 +23,7 @@ The **Testing Agent** ensures regression-free stability by discovering, creating
 - `run_command` (`xcodebuild test -project OmniDesk.xcodeproj -scheme OmniDesk -destination 'platform=macOS' -only-testing:OmniDeskTests`)
 
 ## Forbidden Actions
+- **Never** switch or create git branches.
 - **Never** modify production code outside of test directories.
 - **Never** weaken, comment out, or delete existing test assertions to force a pass.
 - **Never** report a `PASS` if any test fails or compilation errors occur.

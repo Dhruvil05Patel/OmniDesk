@@ -22,6 +22,7 @@ The **UI/UX Agent** researches macOS Human Interface Guidelines (HIG) and compar
 - `run_command` (limited to view build checks, e.g. `swiftc -parse`)
 
 ## Forbidden Actions
+- **Never** switch or create git branches.
 - **Never** modify core services, connectors, or audio pipeline files without UI scope.
 - **Never** hardcode magic color hexes or raw font sizes (use `DesignTokens.swift`).
 - **Never** ignore keyboard navigation (`Escape`, `Return`, tab order) or VoiceOver accessibility.

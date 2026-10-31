@@ -25,9 +25,10 @@ The **Orchestrator** is the central controller for all OmniDesk development task
 
 ## Forbidden Actions
 - **Never** modify application source code directly (delegate to UI or Logic & Backend).
+- **Never** switch branches (`git checkout`, `git switch`) or create new branches without explicit user confirmation.
 - **Never** bypass a failing test result to push to version control.
 - **Never** execute destructive git commands (`git push -f`, `git reset --hard`).
-- **Never** approve outbound PRs without explicit user confirmation.
+- **Never** approve outbound pushes or PRs without explicit user confirmation.
 
 ## Skills to Load
 - `.agents/skills/compact/SKILL.md` (for state preservation and compacting)
