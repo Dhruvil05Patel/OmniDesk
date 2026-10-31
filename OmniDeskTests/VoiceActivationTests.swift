@@ -288,4 +288,51 @@ final class VoiceActivationTests: XCTestCase {
         engine.concludeCommandRecording()
         XCTAssertEqual(engine.state, .processing)
     }
+    
+    // MARK: - 9. App Control Name Sanitization & Fuzzy Matching Tests
+    
+    func testAppControlNameSanitization() {
+        XCTAssertEqual(AppControlConnector.sanitizeAppName("the preview app"), "Preview")
+        XCTAssertEqual(AppControlConnector.sanitizeAppName("the Preview app"), "Preview")
+        XCTAssertEqual(AppControlConnector.sanitizeAppName("previous"), "Preview")
+        XCTAssertEqual(AppControlConnector.sanitizeAppName("the previous app"), "Preview")
+        XCTAssertEqual(AppControlConnector.sanitizeAppName("Slack.app"), "Slack")
+        XCTAssertEqual(AppControlConnector.sanitizeAppName("Safari app"), "Safari")
+        XCTAssertEqual(AppControlConnector.sanitizeAppName("an application"), "")
+    }
+    
+    // MARK: - 10. Safety Gate Voice Confirmation Prompt Callback Tests
+    
+    @MainActor
+    func testSafetyGateConfirmationPromptCallback() async {
+        let gate = SafetyPolicyGate.shared
+        let connector = AppControlConnector()
+        let tool = connector.tools.first(where: { $0.name == "apps_terminate" })!
+        
+        var promptFired = false
+        var promptedDescription: String?
+        
+        gate.onConfirmationPromptRequested = { req in
+            promptFired = true
+            promptedDescription = req.descriptionText
+        }
+        
+        let evalTask = Task {
+            await gate.evaluatePolicy(
+                connector: connector,
+                tool: tool,
+                arguments: ["app_name": "Preview"]
+            )
+        }
+        
+        try? await Task.sleep(nanoseconds: 30_000_000)
+        XCTAssertTrue(promptFired)
+        XCTAssertEqual(promptedDescription, "Terminate and close 'Preview'.")
+        
+        // Resolve affirmative
+        gate.resolveActiveRequest(approved: true)
+        let decision = await evalTask.value
+        XCTAssertEqual(decision, .userApproved)
+        XCTAssertNil(gate.activeRequest)
+    }
 }
