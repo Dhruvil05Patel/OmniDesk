@@ -31,6 +31,9 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
     private var audioPlayer: AVAudioPlayer?
     private var onPlaybackFinished: (@MainActor () -> Void)?
     
+    /// Statically cached voice instance to prevent repeated synchronous XPC IPC calls to speechsynthesisd
+    private static let defaultVoice: AVSpeechSynthesisVoice? = AVSpeechSynthesisVoice(language: "en-US")
+    
     /// The mandatory refractory cooldown period in seconds following audio output before listening re-arms.
     public let refractoryCooldownSeconds: TimeInterval = 0.5
     
@@ -72,9 +75,8 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
         
-        // Select preferred English voice
-        if let preferredVoice = AVSpeechSynthesisVoice(language: "en-US") {
-            utterance.voice = preferredVoice
+        if let voice = Self.defaultVoice {
+            utterance.voice = voice
         }
         
         speechSynthesizer.speak(utterance)
@@ -94,7 +96,7 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         utterance.rate = 0.46 // Natural, calm conversational rate
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
-        if let voice = AVSpeechSynthesisVoice(language: "en-US") {
+        if let voice = Self.defaultVoice {
             utterance.voice = voice
         }
         speechSynthesizer.speak(utterance)
@@ -131,12 +133,19 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         }
     }
     
-    // MARK: - Cooldown & State Transition
+    // MARK: - Cooldown & AudioQueue Drain Barrier
     
     private func handlePlaybackCompleted() {
-        // Enforce the 500ms refractory cooldown before re-arming the wake detector
         Task { @MainActor in
+            // 1. Wait until synthesizer finishes actively generating frames
+            while self.speechSynthesizer.isSpeaking {
+                try? await Task.sleep(nanoseconds: 50_000_000) // 50ms polling
+            }
+            
+            // 2. Enforce the hardware audio drain barrier + refractory cooldown
+            // Ensures physical CoreAudio DAC buffers drain completely before input capture starts
             try? await Task.sleep(nanoseconds: UInt64(self.refractoryCooldownSeconds * 1_000_000_000))
+            
             self.isAudioOutputPlaying = false
             let callback = self.onPlaybackFinished
             self.onPlaybackFinished = nil

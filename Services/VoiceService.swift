@@ -16,6 +16,7 @@ enum VoiceState: Equatable {
     case permissionDenied(String)
 }
 
+@MainActor
 class VoiceService: ObservableObject {
     
     public static let shared = VoiceService()
@@ -25,6 +26,8 @@ class VoiceService: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var isTapInstalled: Bool = false
+    private var isTransitioning: Bool = false
+    private var levelTimer: Timer?
     
     @Published var recognizedText: String = ""
     @Published var state: VoiceState = .idle
@@ -39,15 +42,20 @@ class VoiceService: ObservableObject {
     }
     
     func startRecording() {
-        if audioEngine.isRunning {
+        guard !isTransitioning else { return }
+        
+        if audioEngine.isRunning || state == .recording {
             stopRecording()
         }
         
+        isTransitioning = true
+        
         // Request Speech Recognition Authorization
         SFSpeechRecognizer.requestAuthorization { [weak self] speechStatus in
-            guard let self = self else { return }
-            
-            DispatchQueue.main.async {
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.isTransitioning = false
+                
                 switch speechStatus {
                 case .authorized:
                     self.requestMicrophoneAndRecord()
@@ -67,8 +75,8 @@ class VoiceService: ObservableObject {
     private func requestMicrophoneAndRecord() {
         if #available(macOS 14.0, *) {
             AVAudioApplication.requestRecordPermission { [weak self] granted in
-                guard let self = self else { return }
-                DispatchQueue.main.async {
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
                     if granted {
                         self.beginAudioEngineRecording()
                     } else {
@@ -77,7 +85,6 @@ class VoiceService: ObservableObject {
                 }
             }
         } else {
-            // macOS 13 or earlier fallback
             beginAudioEngineRecording()
         }
     }
@@ -97,8 +104,8 @@ class VoiceService: ObservableObject {
         recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
             guard let self = self else { return }
             if let result = result {
-                DispatchQueue.main.async {
-                    self.recognizedText = result.bestTranscription.formattedString
+                Task { @MainActor [weak self] in
+                    self?.recognizedText = result.bestTranscription.formattedString
                 }
             }
         }
@@ -112,7 +119,10 @@ class VoiceService: ObservableObject {
             audioEngine.stop()
         }
         
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        // Prepare the engine graph before inspecting or installing taps
+        audioEngine.prepare()
+        
+        let recordingFormat = inputNode.inputFormat(forBus: 0)
         
         // Guard against uninitialized / sandbox-restricted audio hardware
         guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else {
@@ -121,35 +131,31 @@ class VoiceService: ObservableObject {
             return
         }
         
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] (buffer: AVAudioPCMBuffer, _: AVAudioTime) in
+        // Real-Time Audio Tap: 0 allocations, 0 locks, 0 actor hops
+        // Passing format: nil lets AVFoundation automatically adopt the native hardware format without throwing -10877
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: nil) { [weak self] (buffer: AVAudioPCMBuffer, _: AVAudioTime) in
             guard let self = self else { return }
-            guard buffer.frameLength > 0 else { return }
-            request.append(buffer)
             
-            // Calculate RMS power for audio level meter
-            if let channelData = buffer.floatChannelData?[0] {
-                let frameLength = UInt(buffer.frameLength)
-                var sum: Float = 0.0
-                if frameLength > 0 {
-                    for i in 0..<Int(frameLength) {
-                        sum += channelData[i] * channelData[i]
-                    }
-                    let rms = sqrt(sum / Float(frameLength))
-                    // Scale and clamp to 0.0 ... 1.0
-                    let normalizedLevel = min(max(rms * 6.0, 0.0), 1.0)
-                    DispatchQueue.main.async {
-                        self.audioLevel = normalizedLevel
-                    }
-                }
+            // 1. Strict pre-flight checks: frameLength > 0, buffer byte size > 0, floatChannelData non-nil
+            // Eliminates AVAudioBuffer.mm:291 mBuffers[0].mDataByteSize (0) should be non-zero
+            guard buffer.frameLength > 0,
+                  buffer.audioBufferList.pointee.mBuffers.mDataByteSize > 0,
+                  let channelData = buffer.floatChannelData?[0] else {
+                return
             }
+            
+            // 2. Append buffer to speech recognition request
+            self.recognitionRequest?.append(buffer)
+            
+            // 3. Append samples to shared AudioRingBuffer without allocations or locks
+            VoiceActivationEngine.shared.ringBuffer.append(samples: channelData, count: Int(buffer.frameLength))
         }
         isTapInstalled = true
-        
-        audioEngine.prepare()
         
         do {
             try audioEngine.start()
             self.state = .recording
+            startLevelPolling()
         } catch {
             print("❌ Audio Engine Start Error:", error)
             self.state = .permissionDenied("Could not start microphone: \(error.localizedDescription)")
@@ -160,23 +166,47 @@ class VoiceService: ObservableObject {
         }
     }
     
+    private func startLevelPolling() {
+        levelTimer?.invalidate()
+        levelTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+            guard let self = self, self.state == .recording else { return }
+            let currentLevel = VoiceActivationEngine.shared.ringBuffer.currentRMS(windowSamples: 1024)
+            self.audioLevel = currentLevel
+        }
+    }
+    
+    private func stopLevelPolling() {
+        levelTimer?.invalidate()
+        levelTimer = nil
+        self.audioLevel = 0.0
+    }
+    
     func stopRecording() {
+        guard state == .recording || isTapInstalled || audioEngine.isRunning else {
+            return
+        }
+        
+        stopLevelPolling()
+        
+        // 1. End audio stream for speech recognizer FIRST before stopping audio engine
+        // Prevents trailing empty buffer assertions and crash handler invalidation
+        recognitionRequest?.endAudio()
+        
+        // 2. Safely remove tap if installed
         if isTapInstalled {
             audioEngine.inputNode.removeTap(onBus: 0)
             isTapInstalled = false
         }
+        
+        // 3. Stop audio engine if running
         if audioEngine.isRunning {
             audioEngine.stop()
-            recognitionRequest?.endAudio()
         }
         
-        recognitionTask?.cancel()
+        recognitionTask?.finish()
         recognitionTask = nil
         recognitionRequest = nil
         
-        DispatchQueue.main.async {
-            self.audioLevel = 0.0
-            self.state = .idle
-        }
+        self.state = .idle
     }
 }
