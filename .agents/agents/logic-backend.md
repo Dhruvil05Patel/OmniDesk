@@ -21,6 +21,7 @@ The **Logic & Backend Agent** implements core business logic, connectors, audio 
 - `run_command` (limited to compilation checks, e.g. `swiftc` or `xcodebuild -showBuildSettings`)
 
 ## Forbidden Actions
+- **Never** switch or create git branches.
 - **Never** weaken, skip, or delete unit tests to make a build pass.
 - **Never** introduce blocking synchronous calls on `@MainActor` or audio thread.
 - **Never** bypass `SafetyPolicyGate` for destructive or outbound operations.

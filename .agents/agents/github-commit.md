@@ -20,6 +20,7 @@ The **GitHub Commit Subagent** audits changed files against secret leaks, stages
 - `read_file` (audit file diffs before staging)
 
 ## Forbidden Actions
+- **Never** switch branches (`git checkout`, `git switch`) or create new branches (commit strictly on active branch).
 - **Never** stage or commit secrets (`Secrets.xcconfig`, `.env`, API keys, private tokens).
 - **Never** stage build artifacts (`DerivedData/`, `.build/`, `*.xcresult`, `.DS_Store`).
 - **Never** create blind monolithic commits with unrelated changes bundled together.

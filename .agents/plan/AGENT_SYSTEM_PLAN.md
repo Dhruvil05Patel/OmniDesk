@@ -58,11 +58,13 @@ flowchart TD
         GitCoord --> GitCommit[5a. Commit Subagent]
         GitCommit -->|Phase-wise & Conventional Commits| GitCompare[5b. Compare Subagent]
         GitCompare -->|Diff Summary against Base| GitReview[5c. PR-Review Subagent]
-        GitReview -->|Security & Style Review + PR Draft| UserConfirm{User Confirmation}
+        GitReview -->|Security & Style Review + PR Draft| UserConfirmPush{User Push Confirmation}
         
-        UserConfirm -->|Approved| GitPush[5d. Push Subagent]
+        UserConfirmPush -->|Approved| GitPush[5d. Push Subagent]
         GitPush -->|Push Feature Branch| GitHubRemote[(Remote GitHub)]
-        UserConfirm -->|Rejected / Edit| Orch
+        GitPush -->|Conflict Check & User PR Confirmation| GitPR[5e. PR Subagent]
+        GitPR -->|Open Pull Request| GitHubPR[(GitHub PR Created)]
+        UserConfirmPush -->|Rejected / Edit| Orch
     end
 ```
 
@@ -82,6 +84,7 @@ flowchart TD
 | **GitHub Push** | `.agents/agents/github-push.md` | Pushes branch to remote after explicit confirmation | `run_command` (`git push`, `git branch`), `ask_question` | Pushing directly to `main`/`master`; force-pushing (`-f`); unconfirmed push |
 | **GitHub Compare** | `.agents/agents/github-compare.md` | Summarizes git diff against base branch | `run_command` (`git diff`, `git log`), `read_file` | Modifying git tree; staging or committing code |
 | **GitHub PR Review** | `.agents/agents/github-pr-review.md` | Audits diff for bugs/secrets, drafts PR description | `run_command` (`git diff`), `read_file`, `write_file` (PR markdown draft) | Merging PRs; modifying branch history; approving insecure diffs |
+| **GitHub PR** | `.agents/agents/github-pr.md` | Verifies mergeability and creates Pull Request **only after user confirmation** | `run_command` (`git merge-tree`, `gh pr create`), `ask_question`, `read_file` | Submitting PR without user approval; opening PRs with merge conflicts; switching branches |
 
 ---
 

@@ -24,6 +24,7 @@ The **Planner** translates high-level user tasks into a rigorous, actionable arc
 
 ## Forbidden Actions
 - **Never** modify production application code (`App/`, `Services/`, `Views/`, `Models/`, etc.).
+- **Never** switch or create git branches (plans may recommend branch names, but branch operations require user confirmation).
 - **Never** run modifying shell commands, package installations, or git operations.
 - **Never** invent nonexistent CLI tools or framework APIs.
 

@@ -23,9 +23,10 @@ The **GitHub PR Review Subagent** performs an automated pre-flight audit of the 
 - `write_file` (strictly for drafting PR descriptions in scratch/docs)
 
 ## Forbidden Actions
+- **Never** switch branches (`git checkout`, `git switch`) or create new branches.
 - **Never** approve a diff containing exposed credentials, tokens, or private paths.
 - **Never** modify code or create git commits.
-- **Never** merge or automatically publish a Pull Request without user authorization.
+- **Never** merge or automatically publish a Pull Request (handoff to `github-push` and `github-pr`).
 
 ## Skills to Load
 - `.agents/skills/compact/SKILL.md` (for synthesizing commit history)
