@@ -73,7 +73,7 @@ public final class AuditLogger: @unchecked Sendable {
     
     public static let shared = AuditLogger()
     
-    private let queue = DispatchQueue(label: "com.omnidesk.auditlogger", attributes: .concurrent)
+    private let lock = NSLock()
     private var inMemoryLogs: [AuditLogEntry] = []
     private let storageKey = "OmniDeskAuditLogs"
     private let maxEntries = 200
@@ -118,28 +118,28 @@ public final class AuditLogger: @unchecked Sendable {
             errorMessage: errorMessage
         )
         
-        queue.async(flags: .barrier) {
-            self.inMemoryLogs.insert(entry, at: 0)
-            if self.inMemoryLogs.count > self.maxEntries {
-                self.inMemoryLogs.removeLast(self.inMemoryLogs.count - self.maxEntries)
-            }
-            self.persistLogs()
-            self.appendToFile(entry: entry)
+        lock.lock()
+        self.inMemoryLogs.insert(entry, at: 0)
+        if self.inMemoryLogs.count > self.maxEntries {
+            self.inMemoryLogs.removeLast(self.inMemoryLogs.count - self.maxEntries)
         }
+        self.persistLogs()
+        self.appendToFile(entry: entry)
+        lock.unlock()
     }
     
     public func fetchRecentLogs(limit: Int = 50) -> [AuditLogEntry] {
-        queue.sync {
-            Array(self.inMemoryLogs.prefix(limit))
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        return Array(self.inMemoryLogs.prefix(limit))
     }
     
     public func clearAll() {
-        queue.async(flags: .barrier) {
-            self.inMemoryLogs.removeAll()
-            UserDefaults.standard.removeObject(forKey: self.storageKey)
-            try? FileManager.default.removeItem(at: self.logFileURL)
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        self.inMemoryLogs.removeAll()
+        UserDefaults.standard.removeObject(forKey: self.storageKey)
+        try? FileManager.default.removeItem(at: self.logFileURL)
     }
     
     // MARK: - Persistence & JSON Lines
