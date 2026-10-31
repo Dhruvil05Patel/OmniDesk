@@ -12,6 +12,7 @@ import Combine
 public struct DynamicIslandContainerView: View {
     @ObservedObject var controller: DynamicIslandPanelController
     @ObservedObject var policyGate: SafetyPolicyGate = .shared
+    @ObservedObject var activationEngine: VoiceActivationEngine = .shared
     @StateObject private var viewModel = MainViewModel()
     @StateObject private var voiceService = VoiceService()
     
@@ -45,7 +46,11 @@ public struct DynamicIslandContainerView: View {
     }
     
     private var isVoiceRecording: Bool {
-        voiceService.state == .recording
+        voiceService.state == .recording || activationEngine.state == .recording
+    }
+    
+    private var liveAudioLevel: Float {
+        max(voiceService.audioLevel, activationEngine.audioLevel)
     }
     
     // MARK: - Collapsed Pill View
@@ -53,12 +58,20 @@ public struct DynamicIslandContainerView: View {
     private var collapsedPillView: some View {
         HStack(spacing: 8) {
             // Live Status Indicator / Waveform
-            if isVoiceRecording {
+            if activationEngine.isMuted {
+                Image(systemName: "mic.slash.fill")
+                    .foregroundColor(Color.red)
+                    .font(.system(size: 11, weight: .bold))
+            } else if activationEngine.state == .awake {
+                Image(systemName: "sparkles")
+                    .foregroundColor(Color.omniAccent)
+                    .font(.system(size: 11, weight: .bold))
+            } else if isVoiceRecording {
                 HStack(spacing: 2) {
                     ForEach(0..<4) { index in
                         RoundedRectangle(cornerRadius: 1)
                             .fill(Color.omniAccent)
-                            .frame(width: 2.5, height: max(4, CGFloat(voiceService.audioLevel * 20) + CGFloat(index * 2)))
+                            .frame(width: 2.5, height: max(4, CGFloat(liveAudioLevel * 20) + CGFloat(index * 2)))
                     }
                 }
                 .frame(height: 14)
@@ -105,11 +118,15 @@ public struct DynamicIslandContainerView: View {
     }
     
     private var collapsedStatusText: String {
-        if isVoiceRecording {
+        if activationEngine.isMuted {
+            return "Muted (⌥⇧M)"
+        } else if activationEngine.state == .awake {
+            return "Dhuli: Awake"
+        } else if isVoiceRecording {
             return "Listening..."
         } else if let req = policyGate.activeRequest {
             return "Approval: \(req.toolName) (\(req.timeoutRemaining)s)"
-        } else if viewModel.status != .idle {
+        } else if viewModel.status != .idle || activationEngine.state == .processing {
             return "Processing..."
         } else {
             return "OmniDesk"
@@ -159,6 +176,18 @@ public struct DynamicIslandContainerView: View {
             Spacer()
             
             HStack(spacing: 8) {
+                // Microphone mute toggle button
+                Button(action: { activationEngine.toggleMute() }) {
+                    Image(systemName: activationEngine.isMuted ? "mic.slash.fill" : "mic.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(activationEngine.isMuted ? Color.red : Color.omniTextSecondary)
+                        .padding(5)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("Toggle microphone listening (⌥⇧M)")
+                
                 // Settings button
                 Button(action: openSettings) {
                     Image(systemName: "gearshape")
@@ -465,6 +494,16 @@ public struct DynamicIslandContainerView: View {
             .sink { newTranscript in
                 if policyGate.activeRequest != nil {
                     viewModel.handleActiveVoiceApprovalInput(newTranscript)
+                }
+            }
+            .store(in: &cancellables)
+            
+        // Expand notch panel when assistant wakes up
+        activationEngine.$state
+            .receive(on: DispatchQueue.main)
+            .sink { newState in
+                if newState == .awake || newState == .recording {
+                    controller.setExpanded(true)
                 }
             }
             .store(in: &cancellables)

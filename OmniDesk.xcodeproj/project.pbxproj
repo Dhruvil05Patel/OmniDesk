@@ -16,24 +16,24 @@
 		A1BBBCB42F7B1FDC001216C9 /* VoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB32F7B1FDC001216C9 /* VoiceService.swift */; };
 		A1BBBCB62F7B1FFF001216C9 /* GmailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB52F7B1FFC001216C9 /* GmailService.swift */; };
 		A1BBBCB82F7B2007001216C9 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB72F7B2005001216C9 /* CalendarService.swift */; };
-		A1BBBCO22F7B3124001216C9 /* ObsidianConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCO12F7B2C97001216C9 /* ObsidianConnector.swift */; };
-		A1BBBCM22F7B3124001216C9 /* MailConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCM12F7B2C97001216C9 /* MailConnector.swift */; };
-		A1BBBCP22F7B3124001216C9 /* AppControlConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCP12F7B2C97001216C9 /* AppControlConnector.swift */; };
-		A1BBBSA22F7B3124001216C9 /* AuditLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBSA12F7B2C97001216C9 /* AuditLogger.swift */; };
-		A1BBBSS22F7B3124001216C9 /* SafetyPolicyGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBSS12F7B2C97001216C9 /* SafetyPolicyGate.swift */; };
-		A1BBBSM22F7B3124001216C9 /* ActionConfirmationModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBSM12F7B2C97001216C9 /* ActionConfirmationModalView.swift */; };
-		A1BBBSB22F7B3124001216C9 /* MCPBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBSB12F7B2C97001216C9 /* MCPBridge.swift */; };
+		A1BBBCBD2F7B2017001216C9 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCBC2F7B2017001216C9 /* DesignTokens.swift */; };
+		A1BBBCC22F7B3124001216C9 /* ConnectorProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCC12F7B2C97001216C9 /* ConnectorProtocol.swift */; };
 		A1BBBCC62F7B258F001216C9 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB92F7B200E001216C9 /* Task.swift */; };
 		A1BBBCD02F7B2E02001216C9 /* AIResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCCF2F7B2DF9001216C9 /* AIResponse.swift */; };
 		A1BBBCD12F7B30F6001216C9 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCB22F7B1FCF001216C9 /* AIService.swift */; };
 		A1BBBCD22F7B3124001216C9 /* ActionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCCE2F7B2C97001216C9 /* ActionHandler.swift */; };
-		A1BBBCC22F7B3124001216C9 /* ConnectorProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCC12F7B2C97001216C9 /* ConnectorProtocol.swift */; };
-		A1BBBCBD2F7B2017001216C9 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCBC2F7B2017001216C9 /* DesignTokens.swift */; };
-		A1DIP0022F7B3200001216C9 /* DynamicIslandPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1DIP0012F7B3200001216C9 /* DynamicIslandPanelController.swift */; };
+		A1BBBCM22F7B3124001216C9 /* MailConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCM12F7B2C97001216C9 /* MailConnector.swift */; };
+		A1BBBCO22F7B3124001216C9 /* ObsidianConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCO12F7B2C97001216C9 /* ObsidianConnector.swift */; };
+		A1BBBCP22F7B3124001216C9 /* AppControlConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBCP12F7B2C97001216C9 /* AppControlConnector.swift */; };
+		A1BBBSA22F7B3124001216C9 /* Safety/AuditLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBSA12F7B2C97001216C9 /* Safety/AuditLogger.swift */; };
+		A1BBBSB22F7B3124001216C9 /* MCP/MCPBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBSB12F7B2C97001216C9 /* MCP/MCPBridge.swift */; };
+		A1BBBSM22F7B3124001216C9 /* ActionConfirmationModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBSM12F7B2C97001216C9 /* ActionConfirmationModalView.swift */; };
+		A1BBBSS22F7B3124001216C9 /* Safety/SafetyPolicyGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBBSS12F7B2C97001216C9 /* Safety/SafetyPolicyGate.swift */; };
 		A1DIC0022F7B3200001216C9 /* DynamicIslandContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1DIC0012F7B3200001216C9 /* DynamicIslandContainerView.swift */; };
-		A1MIC0022F7B3200001216C9 /* MenuBarExtraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1MIC0012F7B3200001216C9 /* MenuBarExtraController.swift */; };
+		A1DIP0022F7B3200001216C9 /* DynamicIslandPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1DIP0012F7B3200001216C9 /* DynamicIslandPanelController.swift */; };
 		A1GHK0022F7B3200001216C9 /* GlobalHotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1GHK0012F7B3200001216C9 /* GlobalHotKeyManager.swift */; };
 		A1LIM0022F7B3200001216C9 /* LoginItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LIM0012F7B3200001216C9 /* LoginItemManager.swift */; };
+		A1MIC0022F7B3200001216C9 /* MenuBarExtraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1MIC0012F7B3200001216C9 /* MenuBarExtraController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,24 +67,24 @@
 		A1BBBCB32F7B1FDC001216C9 /* VoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceService.swift; sourceTree = "<group>"; };
 		A1BBBCB52F7B1FFC001216C9 /* GmailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailService.swift; sourceTree = "<group>"; };
 		A1BBBCB72F7B2005001216C9 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
-		A1BBBCO12F7B2C97001216C9 /* ObsidianConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObsidianConnector.swift; sourceTree = "<group>"; };
-		A1BBBCM12F7B2C97001216C9 /* MailConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailConnector.swift; sourceTree = "<group>"; };
-		A1BBBCP12F7B2C97001216C9 /* AppControlConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppControlConnector.swift; sourceTree = "<group>"; };
-		A1BBBSA12F7B2C97001216C9 /* AuditLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Safety/AuditLogger.swift; sourceTree = "<group>"; };
-		A1BBBSS12F7B2C97001216C9 /* SafetyPolicyGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Safety/SafetyPolicyGate.swift; sourceTree = "<group>"; };
-		A1BBBSM12F7B2C97001216C9 /* ActionConfirmationModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionConfirmationModalView.swift; sourceTree = "<group>"; };
-		A1BBBSB12F7B2C97001216C9 /* MCPBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCP/MCPBridge.swift; sourceTree = "<group>"; };
 		A1BBBCB92F7B200E001216C9 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
 		A1BBBCBA2F7B2017001216C9 /* Permissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permissions.swift; sourceTree = "<group>"; };
-		A1BBBCCE2F7B2C97001216C9 /* ActionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionHandler.swift; sourceTree = "<group>"; };
-		A1BBBCC12F7B2C97001216C9 /* ConnectorProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectorProtocol.swift; sourceTree = "<group>"; };
-		A1BBBCCF2F7B2DF9001216C9 /* AIResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIResponse.swift; sourceTree = "<group>"; };
 		A1BBBCBC2F7B2017001216C9 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
-		A1DIP0012F7B3200001216C9 /* DynamicIslandPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandPanelController.swift; sourceTree = "<group>"; };
+		A1BBBCC12F7B2C97001216C9 /* ConnectorProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectorProtocol.swift; sourceTree = "<group>"; };
+		A1BBBCCE2F7B2C97001216C9 /* ActionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionHandler.swift; sourceTree = "<group>"; };
+		A1BBBCCF2F7B2DF9001216C9 /* AIResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIResponse.swift; sourceTree = "<group>"; };
+		A1BBBCM12F7B2C97001216C9 /* MailConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailConnector.swift; sourceTree = "<group>"; };
+		A1BBBCO12F7B2C97001216C9 /* ObsidianConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObsidianConnector.swift; sourceTree = "<group>"; };
+		A1BBBCP12F7B2C97001216C9 /* AppControlConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppControlConnector.swift; sourceTree = "<group>"; };
+		A1BBBSA12F7B2C97001216C9 /* Safety/AuditLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Safety/AuditLogger.swift; sourceTree = "<group>"; };
+		A1BBBSB12F7B2C97001216C9 /* MCP/MCPBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCP/MCPBridge.swift; sourceTree = "<group>"; };
+		A1BBBSM12F7B2C97001216C9 /* ActionConfirmationModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionConfirmationModalView.swift; sourceTree = "<group>"; };
+		A1BBBSS12F7B2C97001216C9 /* Safety/SafetyPolicyGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Safety/SafetyPolicyGate.swift; sourceTree = "<group>"; };
 		A1DIC0012F7B3200001216C9 /* DynamicIslandContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandContainerView.swift; sourceTree = "<group>"; };
-		A1MIC0012F7B3200001216C9 /* MenuBarExtraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarExtraController.swift; sourceTree = "<group>"; };
+		A1DIP0012F7B3200001216C9 /* DynamicIslandPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandPanelController.swift; sourceTree = "<group>"; };
 		A1GHK0012F7B3200001216C9 /* GlobalHotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotKeyManager.swift; sourceTree = "<group>"; };
 		A1LIM0012F7B3200001216C9 /* LoginItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemManager.swift; sourceTree = "<group>"; };
+		A1MIC0012F7B3200001216C9 /* MenuBarExtraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarExtraController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -200,9 +200,9 @@
 				A1BBBCO12F7B2C97001216C9 /* ObsidianConnector.swift */,
 				A1BBBCM12F7B2C97001216C9 /* MailConnector.swift */,
 				A1BBBCP12F7B2C97001216C9 /* AppControlConnector.swift */,
-				A1BBBSA12F7B2C97001216C9 /* AuditLogger.swift */,
-				A1BBBSS12F7B2C97001216C9 /* SafetyPolicyGate.swift */,
-				A1BBBSB12F7B2C97001216C9 /* MCPBridge.swift */,
+				A1BBBSA12F7B2C97001216C9 /* Safety/AuditLogger.swift */,
+				A1BBBSS12F7B2C97001216C9 /* Safety/SafetyPolicyGate.swift */,
+				A1BBBSB12F7B2C97001216C9 /* MCP/MCPBridge.swift */,
 				A1BBBCB52F7B1FFC001216C9 /* GmailService.swift */,
 				A1BBBCB22F7B1FCF001216C9 /* AIService.swift */,
 				A1BBBCB32F7B1FDC001216C9 /* VoiceService.swift */,
@@ -230,15 +230,6 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
-		A1CTRGRP2F7B3200001216C9 /* Controllers */ = {
-			isa = PBXGroup;
-			children = (
-				A1DIP0012F7B3200001216C9 /* DynamicIslandPanelController.swift */,
-				A1MIC0012F7B3200001216C9 /* MenuBarExtraController.swift */,
-			);
-			path = Controllers;
-			sourceTree = "<group>";
-		};
 		A1BBBCBB2F7B2027001216C9 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
@@ -261,6 +252,15 @@
 				A1BBBCC12F7B2C97001216C9 /* ConnectorProtocol.swift */,
 			);
 			path = ActionRouters;
+			sourceTree = "<group>";
+		};
+		A1CTRGRP2F7B3200001216C9 /* Controllers */ = {
+			isa = PBXGroup;
+			children = (
+				A1DIP0012F7B3200001216C9 /* DynamicIslandPanelController.swift */,
+				A1MIC0012F7B3200001216C9 /* MenuBarExtraController.swift */,
+			);
+			path = Controllers;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -416,10 +416,10 @@
 				A1BBBCO22F7B3124001216C9 /* ObsidianConnector.swift in Sources */,
 				A1BBBCM22F7B3124001216C9 /* MailConnector.swift in Sources */,
 				A1BBBCP22F7B3124001216C9 /* AppControlConnector.swift in Sources */,
-				A1BBBSA22F7B3124001216C9 /* AuditLogger.swift in Sources */,
-				A1BBBSS22F7B3124001216C9 /* SafetyPolicyGate.swift in Sources */,
+				A1BBBSA22F7B3124001216C9 /* Safety/AuditLogger.swift in Sources */,
+				A1BBBSS22F7B3124001216C9 /* Safety/SafetyPolicyGate.swift in Sources */,
 				A1BBBSM22F7B3124001216C9 /* ActionConfirmationModalView.swift in Sources */,
-				A1BBBSB22F7B3124001216C9 /* MCPBridge.swift in Sources */,
+				A1BBBSB22F7B3124001216C9 /* MCP/MCPBridge.swift in Sources */,
 				A1BBBC802F7B05D0001216C9 /* DashboardView.swift in Sources */,
 				A1BBBC7E2F7B05D0001216C9 /* OmniDeskApp.swift in Sources */,
 				A1BBBCAD2F7B1F77001216C9 /* VoiceView.swift in Sources */,

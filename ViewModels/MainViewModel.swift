@@ -34,6 +34,13 @@ class MainViewModel: ObservableObject {
     
     init() {
         self.tasks = Self.loadStoredTasks()
+        setupVoiceActivationEngine()
+    }
+    
+    private func setupVoiceActivationEngine() {
+        VoiceActivationEngine.shared.onCommandCaptured = { [weak self] command in
+            self?.processVoiceInput(command)
+        }
     }
     
     private static func loadStoredTasks() -> [TodoTask] {
