@@ -140,12 +140,10 @@ public final class VoiceActivationEngine: ObservableObject {
         // Start speech dictation via VoiceService
         voiceService.startRecording()
         
-        // Start 100ms cadence timer for end-of-speech silence detection
+        // Start 100ms cadence timer for end-of-speech silence detection on RunLoop.main
         silenceTimer?.invalidate()
         silenceTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.checkRecordingTimeout()
-            }
+            self?.checkRecordingTimeout()
         }
     }
     

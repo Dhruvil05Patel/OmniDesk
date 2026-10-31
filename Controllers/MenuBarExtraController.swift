@@ -74,9 +74,7 @@ public final class MenuBarExtraController: NSObject {
         quitItem.target = self
         menu.addItem(quitItem)
         
-        button.menu = menu
-        button.performClick(nil)
-        button.menu = nil // Detach so subsequent left clicks trigger the action selector
+        statusItem?.popUpMenu(menu)
     }
     
     @objc private func toggleAssistant() {

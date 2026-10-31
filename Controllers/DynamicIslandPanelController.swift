@@ -105,7 +105,9 @@ public final class DynamicIslandPanelController: NSObject, ObservableObject, NSW
         
         if expanded {
             panel?.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            if !NSApp.isActive {
+                NSApp.activate(ignoringOtherApps: true)
+            }
         }
     }
     

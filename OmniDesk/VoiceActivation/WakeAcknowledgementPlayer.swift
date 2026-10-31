@@ -31,6 +31,9 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
     private var audioPlayer: AVAudioPlayer?
     private var onPlaybackFinished: (@MainActor () -> Void)?
     
+    /// Statically cached voice instance to prevent repeated synchronous XPC IPC calls to speechsynthesisd
+    private static let defaultVoice: AVSpeechSynthesisVoice? = AVSpeechSynthesisVoice(language: "en-US")
+    
     /// The mandatory refractory cooldown period in seconds following audio output before listening re-arms.
     public let refractoryCooldownSeconds: TimeInterval = 0.5
     
@@ -53,16 +56,25 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         
         // 1. Check for bundled pre-rendered audio asset first (for instant <10ms latency)
         let assetName = phraseToSpeak.lowercased().replacingOccurrences(of: " ", with: "_")
-        if let audioURL = Bundle.main.url(forResource: assetName, withExtension: "caf") ??
-                          Bundle.main.url(forResource: assetName, withExtension: "wav") {
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
-                audioPlayer?.delegate = self
-                audioPlayer?.prepareToPlay()
-                audioPlayer?.play()
-                return
-            } catch {
-                print("⚠️ Pre-rendered audio playback failed, falling back to AVSpeechSynthesizer: \(error)")
+        let candidateURLs: [URL?] = [
+            Bundle.main.url(forResource: assetName, withExtension: "caf"),
+            Bundle.main.resourceURL?.appendingPathComponent("\(assetName).caf"),
+            Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/\(assetName).caf"),
+            Bundle(for: WakeAcknowledgementPlayer.self).url(forResource: assetName, withExtension: "caf"),
+            URL(fileURLWithPath: "OmniDesk/\(assetName).caf")
+        ]
+        
+        for candidate in candidateURLs.compactMap({ $0 }) {
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                do {
+                    audioPlayer = try AVAudioPlayer(contentsOf: candidate)
+                    audioPlayer?.delegate = self
+                    audioPlayer?.prepareToPlay()
+                    audioPlayer?.play()
+                    return
+                } catch {
+                    print("⚠️ Pre-rendered audio playback failed: \(error)")
+                }
             }
         }
         
@@ -71,10 +83,10 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         utterance.rate = 0.46 // Natural, calm conversational rate
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
+        utterance.preUtteranceDelay = 0.05
         
-        // Select preferred English voice
-        if let preferredVoice = AVSpeechSynthesisVoice(language: "en-US") {
-            utterance.voice = preferredVoice
+        if let voice = Self.defaultVoice {
+            utterance.voice = voice
         }
         
         speechSynthesizer.speak(utterance)
@@ -94,7 +106,8 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         utterance.rate = 0.46 // Natural, calm conversational rate
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
-        if let voice = AVSpeechSynthesisVoice(language: "en-US") {
+        utterance.preUtteranceDelay = 0.05 // Allows CoreAudio AudioQueue to buffer initial packets before DAC starts rendering
+        if let voice = Self.defaultVoice {
             utterance.voice = voice
         }
         speechSynthesizer.speak(utterance)
@@ -131,12 +144,19 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         }
     }
     
-    // MARK: - Cooldown & State Transition
+    // MARK: - Cooldown & AudioQueue Drain Barrier
     
     private func handlePlaybackCompleted() {
-        // Enforce the 500ms refractory cooldown before re-arming the wake detector
         Task { @MainActor in
+            // 1. Wait until synthesizer finishes actively generating frames
+            while self.speechSynthesizer.isSpeaking {
+                try? await Task.sleep(nanoseconds: 50_000_000) // 50ms polling
+            }
+            
+            // 2. Enforce the hardware audio drain barrier + refractory cooldown
+            // Ensures physical CoreAudio DAC buffers drain completely before input capture starts
             try? await Task.sleep(nanoseconds: UInt64(self.refractoryCooldownSeconds * 1_000_000_000))
+            
             self.isAudioOutputPlaying = false
             let callback = self.onPlaybackFinished
             self.onPlaybackFinished = nil
