@@ -10,6 +10,18 @@ import XCTest
 
 final class VoiceActivationTests: XCTestCase {
     
+    @MainActor
+    override func setUp() {
+        super.setUp()
+        WakeAcknowledgementPlayer.shared.stopAllPlayback()
+    }
+    
+    @MainActor
+    override func tearDown() {
+        WakeAcknowledgementPlayer.shared.stopAllPlayback()
+        super.tearDown()
+    }
+    
     // MARK: - 1. Keywords Config & Sensitivity Tests
     
     func testKeywordsConfigDefaultAndEffectiveThreshold() {
@@ -239,5 +251,41 @@ final class VoiceActivationTests: XCTestCase {
         let rejectDecision = await rejectionTask.value
         XCTAssertEqual(rejectDecision.status, .userRejected)
         XCTAssertNil(gate.activeRequest)
+    }
+    
+    // MARK: - 7. Settings Window Controller Tests
+    
+    @MainActor
+    func testSettingsWindowControllerInitializationAndShow() {
+        let controller = SettingsWindowController.shared
+        XCTAssertNotNil(controller.window)
+        XCTAssertEqual(controller.window?.title, "OmniDesk Settings")
+        
+        // Ensure show() can be invoked cleanly without crash
+        controller.show()
+        XCTAssertTrue(controller.window?.isVisible ?? false)
+    }
+    
+    // MARK: - 8. Hotkey Assistant Trigger Flow
+    
+    @MainActor
+    func testHotkeyActivationFlow() {
+        let engine = VoiceActivationEngine.shared
+        var capturedQuery: String?
+        engine.onCommandCaptured = { query in
+            capturedQuery = query
+        }
+        
+        // Trigger hotkey activation
+        engine.triggerHotkeyActivation()
+        XCTAssertEqual(engine.state, .awake)
+        
+        // Transition to recording
+        engine.transition(to: .recording)
+        XCTAssertEqual(engine.state, .recording)
+        
+        // Concluding recording transitions to processing
+        engine.concludeCommandRecording()
+        XCTAssertEqual(engine.state, .processing)
     }
 }
