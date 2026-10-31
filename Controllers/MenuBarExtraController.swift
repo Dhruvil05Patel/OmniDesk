@@ -84,12 +84,7 @@ public final class MenuBarExtraController: NSObject {
     }
     
     @objc private func openSettingsWindow() {
-        if #available(macOS 13.0, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        } else {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        }
-        NSApp.activate(ignoringOtherApps: true)
+        SettingsWindowController.shared.show()
     }
     
     @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {

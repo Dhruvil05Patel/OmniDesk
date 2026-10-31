@@ -118,10 +118,8 @@ public struct DynamicIslandContainerView: View {
     }
     
     private var collapsedStatusText: String {
-        if activationEngine.isMuted {
-            return "Muted (⌥⇧M)"
-        } else if activationEngine.state == .awake {
-            return "Dhuli: Awake"
+        if activationEngine.state == .awake {
+            return "Awake: Yes Boss"
         } else if isVoiceRecording {
             return "Listening..."
         } else if let req = policyGate.activeRequest {
@@ -129,7 +127,7 @@ public struct DynamicIslandContainerView: View {
         } else if viewModel.status != .idle || activationEngine.state == .processing {
             return "Processing..."
         } else {
-            return "OmniDesk"
+            return "OmniDesk (⌘⌥O)"
         }
     }
     
@@ -512,11 +510,6 @@ public struct DynamicIslandContainerView: View {
     @State private var cancellables = Set<AnyCancellable>()
     
     private func openSettings() {
-        if #available(macOS 13.0, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        } else {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        }
-        NSApp.activate(ignoringOtherApps: true)
+        SettingsWindowController.shared.show()
     }
 }
