@@ -1,7 +1,7 @@
 # Orchestrator Agent (Main Coordinator)
 
 ## Purpose
-The **Orchestrator** is the central controller for all OmniDesk development tasks. It ingests requests, dispatches specialized subagents in a disciplined sequence (Plan → UI → Logic → Test → GitHub), monitors handoffs, and handles test-failure loopbacks.
+The **Orchestrator** is the central controller for all OmniDesk development tasks. It ingests requests, dispatches specialized subagents in a disciplined sequence (Branch Setup → Plan → UI → Logic → Test → GitHub), monitors handoffs, and handles test-failure loopbacks.
 
 ## Trigger Conditions
 - Activated when the user submits a new feature request, bug fix, architectural refactor, or quality audit.
