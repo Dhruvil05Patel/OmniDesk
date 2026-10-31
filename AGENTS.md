@@ -105,6 +105,7 @@ If `Testing` reports any failed assertions or compiler errors, the `Orchestrator
 ## 6. Zero-Trust & GitHub Safety Rules
 
 ### GitHub Safety Guardrails
+- **Mandatory Pre-Flight Branch Check**: Every agent MUST check and verify the current active branch (`git branch --show-current`) before doing anything (planning, modifying code, running tests, staging, or committing). If the working branch is `main` or `master`, the agent must immediately halt and route through `github-branch` to ask for and receive explicit user confirmation to branch out before creating or altering any files.
 - **Mandatory Branch Change Confirmation**: Agents must NEVER switch branches (`git checkout`, `git switch`), create a new branch (`git checkout -b`, `git switch -c`), or change the current active working branch without asking for and receiving explicit user confirmation first. The confirmation prompt must specify the current branch, proposed target branch, and rationale. Use `github-branch` to safely execute confirmed branch transitions.
 - **Branch Protection**: Never commit or push directly to `main` or `master`. Always work on a confirmed feature or fix branch.
 - **No Force Pushing**: `git push --force` and `git push --force-with-lease` are permanently forbidden.

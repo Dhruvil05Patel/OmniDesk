@@ -8,6 +8,7 @@ The **GitHub Commit Subagent** audits changed files against secret leaks, stages
 - Invoked when distinct phases of a multi-part plan require separate commits.
 
 ## Inputs
+- Active working branch verified via `git branch --show-current`.
 - List of modified and untracked files from `git status -s`.
 - Plan details and task slug from the handoff contract.
 
@@ -20,6 +21,7 @@ The **GitHub Commit Subagent** audits changed files against secret leaks, stages
 - `read_file` (audit file diffs before staging)
 
 ## Forbidden Actions
+- **Never** commit directly to `main` or `master`.
 - **Never** switch branches (`git checkout`, `git switch`) or create new branches (commit strictly on active branch).
 - **Never** stage or commit secrets (`Secrets.xcconfig`, `.env`, API keys, private tokens).
 - **Never** stage build artifacts (`DerivedData/`, `.build/`, `*.xcresult`, `.DS_Store`).
