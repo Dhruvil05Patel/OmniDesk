@@ -56,16 +56,25 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         
         // 1. Check for bundled pre-rendered audio asset first (for instant <10ms latency)
         let assetName = phraseToSpeak.lowercased().replacingOccurrences(of: " ", with: "_")
-        if let audioURL = Bundle.main.url(forResource: assetName, withExtension: "caf") ??
-                          Bundle.main.url(forResource: assetName, withExtension: "wav") {
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
-                audioPlayer?.delegate = self
-                audioPlayer?.prepareToPlay()
-                audioPlayer?.play()
-                return
-            } catch {
-                print("⚠️ Pre-rendered audio playback failed, falling back to AVSpeechSynthesizer: \(error)")
+        let candidateURLs: [URL?] = [
+            Bundle.main.url(forResource: assetName, withExtension: "caf"),
+            Bundle.main.resourceURL?.appendingPathComponent("\(assetName).caf"),
+            Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/\(assetName).caf"),
+            Bundle(for: WakeAcknowledgementPlayer.self).url(forResource: assetName, withExtension: "caf"),
+            URL(fileURLWithPath: "OmniDesk/\(assetName).caf")
+        ]
+        
+        for candidate in candidateURLs.compactMap({ $0 }) {
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                do {
+                    audioPlayer = try AVAudioPlayer(contentsOf: candidate)
+                    audioPlayer?.delegate = self
+                    audioPlayer?.prepareToPlay()
+                    audioPlayer?.play()
+                    return
+                } catch {
+                    print("⚠️ Pre-rendered audio playback failed: \(error)")
+                }
             }
         }
         
@@ -74,6 +83,7 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         utterance.rate = 0.46 // Natural, calm conversational rate
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
+        utterance.preUtteranceDelay = 0.05
         
         if let voice = Self.defaultVoice {
             utterance.voice = voice
@@ -96,6 +106,7 @@ public final class WakeAcknowledgementPlayer: NSObject, ObservableObject, AVSpee
         utterance.rate = 0.46 // Natural, calm conversational rate
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
+        utterance.preUtteranceDelay = 0.05 // Allows CoreAudio AudioQueue to buffer initial packets before DAC starts rendering
         if let voice = Self.defaultVoice {
             utterance.voice = voice
         }

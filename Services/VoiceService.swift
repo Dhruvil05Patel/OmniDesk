@@ -27,6 +27,7 @@ class VoiceService: ObservableObject {
     private var recognitionTask: SFSpeechRecognitionTask?
     private var isTapInstalled: Bool = false
     private var isTransitioning: Bool = false
+    private var isListening: Bool = false
     private var levelTimer: Timer?
     
     @Published var recognizedText: String = ""
@@ -119,10 +120,7 @@ class VoiceService: ObservableObject {
             audioEngine.stop()
         }
         
-        // Prepare the engine graph before inspecting or installing taps
-        audioEngine.prepare()
-        
-        let recordingFormat = inputNode.inputFormat(forBus: 0)
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
         
         // Guard against uninitialized / sandbox-restricted audio hardware
         guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else {
@@ -131,10 +129,12 @@ class VoiceService: ObservableObject {
             return
         }
         
+        self.isListening = true
+        
         // Real-Time Audio Tap: 0 allocations, 0 locks, 0 actor hops
-        // Passing format: nil lets AVFoundation automatically adopt the native hardware format without throwing -10877
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: nil) { [weak self] (buffer: AVAudioPCMBuffer, _: AVAudioTime) in
-            guard let self = self else { return }
+        // Use recordingFormat (outputFormat for Bus 0) to prevent -10877 (kAudioUnitErr_InvalidElement)
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] (buffer: AVAudioPCMBuffer, _: AVAudioTime) in
+            guard let self = self, self.isListening else { return }
             
             // 1. Strict pre-flight checks: frameLength > 0, buffer byte size > 0, floatChannelData non-nil
             // Eliminates AVAudioBuffer.mm:291 mBuffers[0].mDataByteSize (0) should be non-zero
@@ -152,6 +152,8 @@ class VoiceService: ObservableObject {
         }
         isTapInstalled = true
         
+        audioEngine.prepare()
+        
         do {
             try audioEngine.start()
             self.state = .recording
@@ -159,6 +161,7 @@ class VoiceService: ObservableObject {
         } catch {
             print("❌ Audio Engine Start Error:", error)
             self.state = .permissionDenied("Could not start microphone: \(error.localizedDescription)")
+            self.isListening = false
             if isTapInstalled {
                 inputNode.removeTap(onBus: 0)
                 isTapInstalled = false
@@ -186,13 +189,11 @@ class VoiceService: ObservableObject {
             return
         }
         
+        // 1. Instantly drop any incoming audio frames from the tap callback
+        self.isListening = false
         stopLevelPolling()
         
-        // 1. End audio stream for speech recognizer FIRST before stopping audio engine
-        // Prevents trailing empty buffer assertions and crash handler invalidation
-        recognitionRequest?.endAudio()
-        
-        // 2. Safely remove tap if installed
+        // 2. Safely remove tap first so no more buffers can arrive from hardware
         if isTapInstalled {
             audioEngine.inputNode.removeTap(onBus: 0)
             isTapInstalled = false
@@ -203,8 +204,8 @@ class VoiceService: ObservableObject {
             audioEngine.stop()
         }
         
-        recognitionTask?.finish()
-        recognitionTask = nil
+        // 4. Signal clean end of audio stream to speech recognizer
+        recognitionRequest?.endAudio()
         recognitionRequest = nil
         
         self.state = .idle
