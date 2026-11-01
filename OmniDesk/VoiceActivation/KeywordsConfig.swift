@@ -101,6 +101,16 @@ public struct KeywordsConfig: Codable, Sendable, Equatable {
         return sensitivity.thresholdModifier
     }
     
+    /// Mutates the active sensitivity setting.
+    public mutating func setSensitivity(_ newSensitivity: WakeWordSensitivity) {
+        self.sensitivity = newSensitivity
+    }
+    
+    /// Mutates the active keyword phrase to spot (e.g. "DHULI" or "HEY DHULI").
+    public mutating func setActiveKeyword(_ phrase: String) {
+        self.activeKeyword = phrase.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
+    
     /// Validates whether a candidate phoneme / text token matches the wake word or is a blocked phonetic impostor.
     public func evaluateTokenCandidate(_ candidate: String, score: Float) -> (isMatch: Bool, matchedPhrase: String?, confidence: Float) {
         let normalized = candidate.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()

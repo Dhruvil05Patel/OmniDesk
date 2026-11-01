@@ -29,6 +29,10 @@ public final class VoiceActivationEngine: ObservableObject {
     
     public static let shared = VoiceActivationEngine()
     
+    private static let wakeWordEnabledKey = "omni_wake_word_enabled"
+    private static let activeKeywordKey = "omni_active_keyword"
+    private static let sensitivityKey = "omni_wake_word_sensitivity"
+    
     // MARK: - Published State
     
     @Published public private(set) var state: ActivationState = .listening
@@ -37,6 +41,12 @@ public final class VoiceActivationEngine: ObservableObject {
     @Published public var isMuted: Bool = false {
         didSet {
             handleMuteStateChanged()
+        }
+    }
+    @Published public var isWakeWordEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isWakeWordEnabled, forKey: Self.wakeWordEnabledKey)
+            handleWakeWordSettingChanged()
         }
     }
     
@@ -54,6 +64,7 @@ public final class VoiceActivationEngine: ObservableObject {
     private let silenceCutoffThreshold: TimeInterval = 1.2
     private var hasDetectedSpeech: Bool = false
     private var silenceTimer: Timer?
+    private var wakeDetectionTimer: Timer?
     
     // Callbacks
     public var onCommandCaptured: ((String) -> Void)?
@@ -64,11 +75,34 @@ public final class VoiceActivationEngine: ObservableObject {
     // MARK: - Initialization & Lifecycle
     
     public init() {
+        self.isWakeWordEnabled = UserDefaults.standard.bool(forKey: Self.wakeWordEnabledKey)
+        
+        // Restore saved active keyword if configured
+        if let savedKeyword = UserDefaults.standard.string(forKey: Self.activeKeywordKey) {
+            var cfg = wakeDetector.config
+            cfg.setActiveKeyword(savedKeyword)
+            wakeDetector.updateConfig(cfg)
+        }
+        
+        // Restore saved sensitivity if configured
+        if let savedSensitivityStr = UserDefaults.standard.string(forKey: Self.sensitivityKey),
+           let savedSensitivity = WakeWordSensitivity(rawValue: savedSensitivityStr) {
+            var cfg = wakeDetector.config
+            cfg.setSensitivity(savedSensitivity)
+            wakeDetector.updateConfig(cfg)
+        }
+        
         setupVoiceServiceBinding()
+        setupLifecycleObservers()
+        
+        if isWakeWordEnabled && !isMuted {
+            startBackgroundWakeWordListening()
+        }
     }
     
     deinit {
         silenceTimer?.invalidate()
+        wakeDetectionTimer?.invalidate()
     }
     
     private func setupVoiceServiceBinding() {
@@ -121,6 +155,103 @@ public final class VoiceActivationEngine: ObservableObject {
             guard let self = self else { return }
             self.beginCommandRecording()
         }
+    }
+    
+    // MARK: - Wake-Word Activation ("Dhuli")
+    
+    /// Triggered when the wake word "Dhuli" is spotted from continuous audio evaluation.
+    public func triggerWakeWordActivation(keyword: String = "DHULI") {
+        if isMuted {
+            isMuted = false
+        }
+        
+        guard state != .awake && state != .recording && state != .processing && state != .awaitingApproval else { return }
+        
+        // Strict Zero-Trust Safety Lock: Never trigger or alter an in-flight confirmation prompt
+        guard SafetyPolicyGate.shared.activeRequest == nil else {
+            print("🛡️ [SafetyPolicyGate] Wake word '\(keyword)' locked out during active confirmation window.")
+            return
+        }
+        
+        print("🎙️ Wake word detected: '\(keyword)' — expanding island and playing acknowledgement")
+        
+        // 1. Expand Resident Notch / Menu Bar Island
+        DynamicIslandPanelController.shared.setExpanded(true)
+        transition(to: .awake)
+        
+        // 2. Play instantaneous wake acknowledgement ("Yes boss")
+        ackPlayer.playWakeAcknowledgement { [weak self] in
+            guard let self = self else { return }
+            self.beginCommandRecording()
+        }
+    }
+    
+    // MARK: - Background Wake Word Streaming
+    
+    private func handleWakeWordSettingChanged() {
+        if isWakeWordEnabled {
+            if !isMuted {
+                startBackgroundWakeWordListening()
+            }
+        } else {
+            stopBackgroundWakeWordListening()
+        }
+    }
+    
+    public func startBackgroundWakeWordListening() {
+        guard isWakeWordEnabled, !isMuted else { return }
+        voiceService.startIdleListening()
+        startWakeDetectionTimer()
+    }
+    
+    public func stopBackgroundWakeWordListening() {
+        stopWakeDetectionTimer()
+        if state != .recording {
+            voiceService.stopIdleListening()
+        }
+    }
+    
+    private func startWakeDetectionTimer() {
+        wakeDetectionTimer?.invalidate()
+        wakeDetectionTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.evaluateBackgroundAudioForWakeWord()
+        }
+    }
+    
+    private func stopWakeDetectionTimer() {
+        wakeDetectionTimer?.invalidate()
+        wakeDetectionTimer = nil
+    }
+    
+    public func evaluateBackgroundAudioForWakeWord() {
+        guard isWakeWordEnabled, !isMuted else { return }
+        guard state == .listening else { return }
+        guard !ackPlayer.isAudioOutputPlaying else { return }
+        guard SafetyPolicyGate.shared.activeRequest == nil else { return }
+        
+        // Read recent 1600 samples (100ms of 16kHz audio)
+        let samples = ringBuffer.readRecent(count: 1600)
+        guard samples.count >= 512 else { return }
+        
+        if let result = wakeDetector.process(samples: samples) {
+            triggerWakeWordActivation(keyword: result.keyword)
+        }
+    }
+    
+    // MARK: - Configuration Updates
+    
+    public func setWakeWordSensitivity(_ sensitivity: WakeWordSensitivity) {
+        var cfg = wakeDetector.config
+        cfg.setSensitivity(sensitivity)
+        wakeDetector.updateConfig(cfg)
+        UserDefaults.standard.set(sensitivity.rawValue, forKey: Self.sensitivityKey)
+    }
+    
+    public func setActiveKeywordPhrase(_ phrase: String) {
+        var cfg = wakeDetector.config
+        cfg.setActiveKeyword(phrase)
+        wakeDetector.updateConfig(cfg)
+        UserDefaults.standard.set(phrase, forKey: Self.activeKeywordKey)
     }
     
     // MARK: - Command Recording Lifecycle
@@ -207,9 +338,74 @@ public final class VoiceActivationEngine: ObservableObject {
             if state == .recording {
                 concludeCommandRecording()
             }
+            stopBackgroundWakeWordListening()
             transition(to: .muted)
         } else {
             transition(to: .listening)
+            if isWakeWordEnabled {
+                startBackgroundWakeWordListening()
+            }
+        }
+    }
+    
+    // MARK: - Lifecycle Observers
+    
+    private func setupLifecycleObservers() {
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.handleSystemSleep()
+            }
+        }
+        
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.handleSystemWake()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.handleAudioConfigurationChange()
+            }
+        }
+    }
+    
+    public func handleSystemSleep() {
+        print("💤 [VoiceActivationEngine] System sleep detected — pausing audio engine.")
+        stopBackgroundWakeWordListening()
+        voiceService.stopRecording()
+    }
+    
+    public func handleSystemWake() {
+        print("☀️ [VoiceActivationEngine] System wake detected — settling CoreAudio before re-arming.")
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            if self.isWakeWordEnabled && !self.isMuted {
+                self.startBackgroundWakeWordListening()
+            }
+        }
+    }
+    
+    public func handleAudioConfigurationChange() {
+        print("🎧 [VoiceActivationEngine] Audio route or hardware configuration changed.")
+        Task { @MainActor in
+            if self.state != .recording && self.isWakeWordEnabled && !self.isMuted {
+                self.voiceService.stopIdleListening()
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                self.voiceService.startIdleListening()
+            }
         }
     }
     
