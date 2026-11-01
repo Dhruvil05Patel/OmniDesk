@@ -79,6 +79,11 @@ public struct DynamicIslandContainerView: View {
                 Image(systemName: "exclamationmark.shield.fill")
                     .symbolRenderingMode(.multicolor)
                     .font(.system(size: 11, weight: .bold))
+            } else if activationEngine.isWakeWordEnabled {
+                Circle()
+                    .fill(Color.omniAccent)
+                    .frame(width: 7, height: 7)
+                    .shadow(color: Color.omniAccent.opacity(0.8), radius: 4)
             } else {
                 Circle()
                     .fill(viewModel.status == .idle ? Color.omniEmerald : Color.omniAmber)
@@ -118,7 +123,9 @@ public struct DynamicIslandContainerView: View {
     }
     
     private var collapsedStatusText: String {
-        if activationEngine.state == .awake {
+        if activationEngine.isMuted {
+            return "Muted (⌥⇧M)"
+        } else if activationEngine.state == .awake {
             return "Awake: Yes Boss"
         } else if isVoiceRecording {
             return "Listening..."
@@ -126,6 +133,9 @@ public struct DynamicIslandContainerView: View {
             return "Approval: \(req.toolName) (\(req.timeoutRemaining)s)"
         } else if viewModel.status != .idle || activationEngine.state == .processing {
             return "Processing..."
+        } else if activationEngine.isWakeWordEnabled {
+            let activeWord = activationEngine.wakeDetector.config.activeKeyword == "HEY DHULI" ? "Hey Dhuli" : "Dhuli"
+            return "\(activeWord) / ⌘⌥O"
         } else {
             return "OmniDesk (⌘⌥O)"
         }

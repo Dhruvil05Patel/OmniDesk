@@ -142,6 +142,8 @@ struct VoiceView: View {
         switch voiceService.state {
         case .idle:
             return Color.omniEmerald
+        case .idleListening:
+            return Color.omniAccent
         case .recording:
             return Color.omniRed
         case .permissionDenied:
@@ -151,7 +153,7 @@ struct VoiceView: View {
     
     private var statusTextColor: Color {
         switch voiceService.state {
-        case .idle:
+        case .idle, .idleListening:
             return Color.omniTextSecondary
         case .recording:
             return Color.omniRed
@@ -164,6 +166,8 @@ struct VoiceView: View {
         switch voiceService.state {
         case .idle:
             return "Ready"
+        case .idleListening:
+            return "Wake Word Ready"
         case .recording:
             return "Listening"
         case .permissionDenied(let msg):

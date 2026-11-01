@@ -226,37 +226,138 @@ struct DashboardView: View {
 // MARK: - Dedicated Settings & Customization View
 struct SettingsView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
+    @ObservedObject private var activationEngine = VoiceActivationEngine.shared
+    @ObservedObject private var ackPlayer = WakeAcknowledgementPlayer.shared
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            // Header
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color.omniAccent)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header
+                HStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Color.omniAccent)
+                        
+                        Text("Settings & Customization")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundColor(Color.omniTextPrimary)
+                    }
                     
-                    Text("Settings & Customization")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(Color.omniTextPrimary)
+                    Spacer()
+                    
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color.omniTextMuted)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .focusable(false)
                 }
                 
-                Spacer()
+                Divider()
+                    .background(Color.omniBorder)
                 
-                Button(action: { dismiss() }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
+                // Voice Activation & Wake Word Section
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "waveform.and.mic")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(Color.omniAccent)
+                        
+                        Text("VOICE ACTIVATION & WAKE WORD")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color.omniTextSecondary)
+                            .tracking(0.6)
+                    }
+                    
+                    // Enable Wake Word Toggle
+                    Toggle(isOn: $activationEngine.isWakeWordEnabled) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Always-On Wake Word (\"Dhuli\")")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(Color.omniTextPrimary)
+                            Text("Hands-free voice trigger alongside ⌘⌥O hotkey")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color.omniTextMuted)
+                        }
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: Color.omniAccent))
+                    
+                    if activationEngine.isWakeWordEnabled {
+                        Divider()
+                            .background(Color.omniBorder)
+                        
+                        // Active Keyword Selection
+                        HStack {
+                            Text("Wake Phrase")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color.omniTextSecondary)
+                            Spacer()
+                            Picker("", selection: Binding(
+                                get: { activationEngine.wakeDetector.config.activeKeyword },
+                                set: { activationEngine.setActiveKeywordPhrase($0) }
+                            )) {
+                                Text("Dhuli").tag("DHULI")
+                                Text("Hey Dhuli").tag("HEY DHULI")
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            .frame(width: 160)
+                        }
+                        
+                        // Sensitivity Selection
+                        HStack {
+                            Text("Sensitivity")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color.omniTextSecondary)
+                            Spacer()
+                            Picker("", selection: Binding(
+                                get: { activationEngine.wakeDetector.config.sensitivity },
+                                set: { activationEngine.setWakeWordSensitivity($0) }
+                            )) {
+                                ForEach(WakeWordSensitivity.allCases, id: \.self) { sens in
+                                    Text(sens.rawValue).tag(sens)
+                                }
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            .frame(width: 180)
+                        }
+                        
+                        // Acknowledgment Sound Selection
+                        HStack {
+                            Text("Spoken Reply")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color.omniTextSecondary)
+                            Spacer()
+                            Picker("", selection: $ackPlayer.selectedPhrase) {
+                                ForEach(WakeAcknowledgementPlayer.AckPhrase.allCases, id: \.self) { phrase in
+                                    Text(phrase.rawValue).tag(phrase)
+                                }
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(width: 120)
+                        }
+                        
+                        // Randomize toggle
+                        Toggle(isOn: $ackPlayer.randomizePhrase) {
+                            Text("Randomize Acknowledgement")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color.omniTextSecondary)
+                        }
+                        .toggleStyle(SwitchToggleStyle(tint: Color.omniAccent))
+                    }
+                    
+                    // Privacy disclosure note
+                    Text("OmniDesk processes audio 100% locally in-memory for wake detection. Audio is never recorded to disk or sent to the cloud. macOS displays an orange dot in the menu bar when active.")
+                        .font(.system(size: 9.5))
                         .foregroundColor(Color.omniTextMuted)
+                        .lineSpacing(2)
+                        .padding(.top, 2)
                 }
-                .buttonStyle(PlainButtonStyle())
-                .focusable(false)
-            }
-            
-            Divider()
-                .background(Color.omniBorder)
-            
-            // Appearance Section
+                .minimalCard(padding: 14, cornerRadius: 10)
+                
+                // Appearance Section
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
                     Image(systemName: "circle.righthalf.filled")
@@ -408,7 +509,9 @@ struct SettingsView: View {
             .minimalCard(padding: 14, cornerRadius: 10)
         }
         .padding(18)
-        .frame(width: 360)
+        .frame(width: 380)
+        }
+        .frame(maxHeight: 520)
         .background(Color.omniBackground.ignoresSafeArea())
     }
 }
