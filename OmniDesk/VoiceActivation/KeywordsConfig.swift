@@ -46,11 +46,23 @@ public struct KeywordsConfig: Codable, Sendable, Equatable {
     public var keywords: [KeywordEntry]
     public var falsePositiveBlocklist: [String]
     
-    /// Default configuration for the custom wake word "Dhuli" (pronounced "dh-u-li").
+    /// Default configuration for the custom wake word "Nexus".
     public static let `default` = KeywordsConfig(
-        activeKeyword: "DHULI",
+        activeKeyword: "NEXUS",
         sensitivity: .balanced,
         keywords: [
+            KeywordEntry(
+                phrase: "NEXUS",
+                boostWeight: 1.5,
+                baseThreshold: 0.35,
+                phoneticTokens: ["N", "EH", "K", "S", "AH", "S"]
+            ),
+            KeywordEntry(
+                phrase: "HEY NEXUS",
+                boostWeight: 1.8,
+                baseThreshold: 0.40,
+                phoneticTokens: ["HH", "EY", "N", "EH", "K", "S", "AH", "S"]
+            ),
             KeywordEntry(
                 phrase: "DHULI",
                 boostWeight: 1.5,
@@ -58,31 +70,19 @@ public struct KeywordsConfig: Codable, Sendable, Equatable {
                 phoneticTokens: ["DH", "UW", "L", "IY"]
             ),
             KeywordEntry(
-                phrase: "DHOOLI",
-                boostWeight: 1.4,
-                baseThreshold: 0.38,
-                phoneticTokens: ["DH", "UW", "L", "IY"]
-            ),
-            KeywordEntry(
                 phrase: "HEY DHULI",
                 boostWeight: 1.8,
                 baseThreshold: 0.40,
                 phoneticTokens: ["HH", "EY", "DH", "UW", "L", "IY"]
-            ),
-            KeywordEntry(
-                phrase: "DOOLI",
-                boostWeight: 1.2,
-                baseThreshold: 0.42,
-                phoneticTokens: ["D", "UW", "L", "IY"]
             )
         ],
         falsePositiveBlocklist: [
-            "JULIE", "DAILY", "DO IT", "TRULY", "DUTY", "DOOLEY", "COOLIE", "DEWEY"
+            "LEXUS", "TEXAS", "NEXT", "ACCESS", "EXCESS", "FOCUS", "JULIE", "DAILY", "DO IT", "TRULY", "DUTY"
         ]
     )
     
     public init(
-        activeKeyword: String = "DHULI",
+        activeKeyword: String = "NEXUS",
         sensitivity: WakeWordSensitivity = .balanced,
         keywords: [KeywordEntry] = [],
         falsePositiveBlocklist: [String] = []

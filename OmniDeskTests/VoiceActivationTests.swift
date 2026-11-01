@@ -26,7 +26,7 @@ final class VoiceActivationTests: XCTestCase {
     
     func testKeywordsConfigDefaultAndEffectiveThreshold() {
         let config = KeywordsConfig.default
-        XCTAssertEqual(config.activeKeyword, "DHULI")
+        XCTAssertEqual(config.activeKeyword, "NEXUS")
         XCTAssertEqual(config.sensitivity, .balanced)
         XCTAssertEqual(config.effectiveThreshold, 0.35, accuracy: 0.01)
         
@@ -41,20 +41,20 @@ final class VoiceActivationTests: XCTestCase {
         XCTAssertGreaterThan(lowConfig.effectiveThreshold, config.effectiveThreshold)
         
         // Test primary keyword match
-        let evaluation = config.evaluateTokenCandidate("DHULI", score: 0.30)
+        let evaluation = config.evaluateTokenCandidate("NEXUS", score: 0.30)
         XCTAssertTrue(evaluation.isMatch)
-        XCTAssertEqual(evaluation.matchedPhrase, "DHULI")
+        XCTAssertEqual(evaluation.matchedPhrase, "NEXUS")
         XCTAssertGreaterThanOrEqual(evaluation.confidence, 0.35)
         
-        // Test variant match: "HEY DHULI"
-        let heyEval = config.evaluateTokenCandidate("HEY DHULI", score: 0.25)
+        // Test variant match: "HEY NEXUS"
+        let heyEval = config.evaluateTokenCandidate("HEY NEXUS", score: 0.25)
         XCTAssertTrue(heyEval.isMatch)
-        XCTAssertEqual(heyEval.matchedPhrase, "HEY DHULI")
+        XCTAssertEqual(heyEval.matchedPhrase, "HEY NEXUS")
     }
     
     func testKeywordsFalsePositiveBlocklist() {
         let config = KeywordsConfig.default
-        let impostors = ["JULIE", "DAILY", "DO IT", "TRULY", "COOLIE", "DUTY", "DOOLEY"]
+        let impostors = ["LEXUS", "TEXAS", "NEXT", "ACCESS", "EXCESS", "FOCUS", "JULIE", "DAILY", "DO IT"]
         
         for word in impostors {
             let result = config.evaluateTokenCandidate(word, score: 0.99)
@@ -113,17 +113,17 @@ final class VoiceActivationTests: XCTestCase {
         let result = detector.process(samples: voiceSample)
         XCTAssertNotNil(result)
         if let result = result {
-            XCTAssertEqual(result.keyword, "DHULI")
+            XCTAssertEqual(result.keyword, "NEXUS")
             XCTAssertGreaterThanOrEqual(result.confidence, 0.35)
         }
         
         // 3. Test explicit candidate evaluation with impostor
-        let impostorResult = detector.evaluateCandidateString("JULIE", rawScore: 0.8)
+        let impostorResult = detector.evaluateCandidateString("LEXUS", rawScore: 0.8)
         XCTAssertNil(impostorResult)
         
-        let validResult = detector.evaluateCandidateString("DHULI", rawScore: 0.5)
+        let validResult = detector.evaluateCandidateString("NEXUS", rawScore: 0.5)
         XCTAssertNotNil(validResult)
-        XCTAssertEqual(validResult?.keyword, "DHULI")
+        XCTAssertEqual(validResult?.keyword, "NEXUS")
     }
     
     // MARK: - 4. Wake Acknowledgement Player Tests
@@ -393,13 +393,13 @@ final class VoiceActivationTests: XCTestCase {
         XCTAssertEqual(engine.wakeDetector.config.sensitivity, .high)
         XCTAssertEqual(UserDefaults.standard.string(forKey: "omni_wake_word_sensitivity"), "High")
         
-        engine.setActiveKeywordPhrase("HEY DHULI")
-        XCTAssertEqual(engine.wakeDetector.config.activeKeyword, "HEY DHULI")
-        XCTAssertEqual(UserDefaults.standard.string(forKey: "omni_active_keyword"), "HEY DHULI")
+        engine.setActiveKeywordPhrase("HEY NEXUS")
+        XCTAssertEqual(engine.wakeDetector.config.activeKeyword, "HEY NEXUS")
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "omni_active_keyword"), "HEY NEXUS")
         
         // Reset to default
         engine.setWakeWordSensitivity(.balanced)
-        engine.setActiveKeywordPhrase("DHULI")
+        engine.setActiveKeywordPhrase("NEXUS")
     }
     
     @MainActor
@@ -425,9 +425,9 @@ final class VoiceActivationTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 10_000_000)
         XCTAssertNotNil(gate.activeRequest)
         
-        // 2. Attempt to trigger wake word "Dhuli" while confirmation is pending
+        // 2. Attempt to trigger wake word "Nexus" while confirmation is pending
         let previousState = engine.state
-        engine.triggerWakeWordActivation(keyword: "DHULI")
+        engine.triggerWakeWordActivation(keyword: "NEXUS")
         
         // 3. Assert wake word is ignored: state does NOT change to .awake and confirmation request remains active
         XCTAssertEqual(engine.state, previousState)

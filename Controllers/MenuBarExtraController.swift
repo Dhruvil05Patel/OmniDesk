@@ -54,8 +54,10 @@ public final class MenuBarExtraController: NSObject {
         menu.addItem(toggleItem)
         
         let wakeWordEnabled = VoiceActivationEngine.shared.isWakeWordEnabled
+        let kw = VoiceActivationEngine.shared.wakeDetector.config.activeKeyword
+        let kwDisplay = kw == "HEY NEXUS" ? "Hey Nexus" : (kw == "NEXUS" ? "Nexus" : "Dhuli")
         let wakeWordItem = NSMenuItem(
-            title: wakeWordEnabled ? "Disable Wake Word ('Dhuli')" : "Enable Wake Word ('Dhuli')",
+            title: wakeWordEnabled ? "Disable Wake Word ('\(kwDisplay)')" : "Enable Wake Word ('\(kwDisplay)')",
             action: #selector(toggleWakeWord),
             keyEquivalent: ""
         )

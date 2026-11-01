@@ -157,10 +157,10 @@ public final class VoiceActivationEngine: ObservableObject {
         }
     }
     
-    // MARK: - Wake-Word Activation ("Dhuli")
+    // MARK: - Wake-Word Activation ("Nexus")
     
-    /// Triggered when the wake word "Dhuli" is spotted from continuous audio evaluation.
-    public func triggerWakeWordActivation(keyword: String = "DHULI") {
+    /// Triggered when the wake word "Nexus" is spotted from continuous audio evaluation.
+    public func triggerWakeWordActivation(keyword: String = "NEXUS") {
         if isMuted {
             isMuted = false
         }

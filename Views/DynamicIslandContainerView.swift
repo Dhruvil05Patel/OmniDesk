@@ -134,7 +134,8 @@ public struct DynamicIslandContainerView: View {
         } else if viewModel.status != .idle || activationEngine.state == .processing {
             return "Processing..."
         } else if activationEngine.isWakeWordEnabled {
-            let activeWord = activationEngine.wakeDetector.config.activeKeyword == "HEY DHULI" ? "Hey Dhuli" : "Dhuli"
+            let kw = activationEngine.wakeDetector.config.activeKeyword
+            let activeWord = kw == "HEY NEXUS" ? "Hey Nexus" : (kw == "NEXUS" ? "Nexus" : (kw == "HEY DHULI" ? "Hey Dhuli" : "Dhuli"))
             return "\(activeWord) / ⌘⌥O"
         } else {
             return "OmniDesk (⌘⌥O)"

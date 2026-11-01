@@ -275,7 +275,7 @@ struct SettingsView: View {
                     // Enable Wake Word Toggle
                     Toggle(isOn: $activationEngine.isWakeWordEnabled) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Always-On Wake Word (\"Dhuli\")")
+                            Text("Always-On Wake Word (\"Nexus\")")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(Color.omniTextPrimary)
                             Text("Hands-free voice trigger alongside ⌘⌥O hotkey")
@@ -299,11 +299,12 @@ struct SettingsView: View {
                                 get: { activationEngine.wakeDetector.config.activeKeyword },
                                 set: { activationEngine.setActiveKeywordPhrase($0) }
                             )) {
+                                Text("Nexus").tag("NEXUS")
+                                Text("Hey Nexus").tag("HEY NEXUS")
                                 Text("Dhuli").tag("DHULI")
-                                Text("Hey Dhuli").tag("HEY DHULI")
                             }
                             .pickerStyle(SegmentedPickerStyle())
-                            .frame(width: 160)
+                            .frame(width: 200)
                         }
                         
                         // Sensitivity Selection
