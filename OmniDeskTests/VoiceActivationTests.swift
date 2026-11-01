@@ -367,4 +367,87 @@ final class VoiceActivationTests: XCTestCase {
         }
         XCTAssertTrue(completed)
     }
+    
+    // MARK: - 12. Wake-Word Activation & Safety Gating Tests
+    
+    @MainActor
+    func testWakeWordEnabledSettingAndPersistence() {
+        let engine = VoiceActivationEngine.shared
+        let original = engine.isWakeWordEnabled
+        defer { engine.isWakeWordEnabled = original }
+        
+        engine.isWakeWordEnabled = true
+        XCTAssertTrue(engine.isWakeWordEnabled)
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "omni_wake_word_enabled"))
+        
+        engine.isWakeWordEnabled = false
+        XCTAssertFalse(engine.isWakeWordEnabled)
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "omni_wake_word_enabled"))
+    }
+    
+    @MainActor
+    func testWakeWordConfigurationUpdates() {
+        let engine = VoiceActivationEngine.shared
+        
+        engine.setWakeWordSensitivity(.high)
+        XCTAssertEqual(engine.wakeDetector.config.sensitivity, .high)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "omni_wake_word_sensitivity"), "High")
+        
+        engine.setActiveKeywordPhrase("HEY DHULI")
+        XCTAssertEqual(engine.wakeDetector.config.activeKeyword, "HEY DHULI")
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "omni_active_keyword"), "HEY DHULI")
+        
+        // Reset to default
+        engine.setWakeWordSensitivity(.balanced)
+        engine.setActiveKeywordPhrase("DHULI")
+    }
+    
+    @MainActor
+    func testWakeWordLockedOutDuringActiveConfirmationPrompt() async {
+        let engine = VoiceActivationEngine.shared
+        let gate = SafetyPolicyGate.shared
+        
+        // 1. Create a simulated active confirmation request
+        let approvalTask = Task { @MainActor in
+            await withCheckedContinuation { continuation in
+                let req = PendingConfirmationRequest(
+                    connectorId: "com.omnidesk.apps",
+                    toolName: "apps_terminate",
+                    arguments: ["app_name": "Terminal"],
+                    riskLevel: .destructiveOrOutbound,
+                    descriptionText: "Terminate Terminal",
+                    continuation: continuation
+                )
+                gate.activeRequest = req
+            }
+        }
+        
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        XCTAssertNotNil(gate.activeRequest)
+        
+        // 2. Attempt to trigger wake word "Dhuli" while confirmation is pending
+        let previousState = engine.state
+        engine.triggerWakeWordActivation(keyword: "DHULI")
+        
+        // 3. Assert wake word is ignored: state does NOT change to .awake and confirmation request remains active
+        XCTAssertEqual(engine.state, previousState)
+        XCTAssertNotNil(gate.activeRequest)
+        
+        // Clean up
+        gate.resolveActiveRequest(approved: false)
+        _ = await approvalTask.value
+        XCTAssertNil(gate.activeRequest)
+    }
+    
+    @MainActor
+    func testLifecycleHandlersSafeExecution() {
+        let engine = VoiceActivationEngine.shared
+        
+        // Verify sleep, wake, and audio config change handlers execute safely without throwing or crashing
+        engine.handleSystemSleep()
+        engine.handleSystemWake()
+        engine.handleAudioConfigurationChange()
+        
+        XCTAssertTrue(true)
+    }
 }
