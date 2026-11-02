@@ -2,9 +2,9 @@
 ## Architectural Blueprint, System Specification & Project Roadmap
 
 **Document Location:** `.agents/summary.md`  
-**Latest Update:** 2026-11-01  
-**Current Branch:** `feature/voice-wake-word`  
-**Test Suite Status:** 48 / 48 Tests Passing (`** TEST SUCCEEDED **`)
+**Latest Update:** 2026-11-02  
+**Current Branch:** `feature/whisperkit-local-stt`  
+**Test Suite Status:** 73 / 73 Tests Passing (`** TEST SUCCEEDED **`)
 
 ---
 
