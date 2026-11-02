@@ -3,7 +3,7 @@
 
 **Document Location:** `.agents/summary.md`  
 **Latest Update:** 2026-11-01  
-**Current Branch:** `fix/audio-runtime-warnings`  
+**Current Branch:** `feature/voice-wake-word`  
 **Test Suite Status:** 48 / 48 Tests Passing (`** TEST SUCCEEDED **`)
 
 ---

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>OmniDesk uses the microphone for local, on-device wake-word detection ("Dhuli") and voice commands. Audio is processed strictly in memory and is never transmitted off your device.</string>
+	<string>OmniDesk uses the microphone for local, on-device wake-word detection ("Nexus") and voice commands. Audio is processed strictly in memory and is never transmitted off your device.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>OmniDesk uses speech recognition to transcribe your voice commands locally on your Mac.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>

@@ -12,6 +12,7 @@ import AVFoundation
 
 enum VoiceState: Equatable {
     case idle
+    case idleListening
     case recording
     case permissionDenied(String)
 }
@@ -42,10 +43,117 @@ class VoiceService: ObservableObject {
         }
     }
     
+    // MARK: - Idle Background Listening (Wake Word Mode)
+    
+    /// Starts low-power background microphone capture feeding the shared AudioRingBuffer for wake-word detection.
+    /// Runs strictly on-device without allocating an SFSpeechAudioBufferRecognitionRequest.
+    func startIdleListening() {
+        guard !isTransitioning else { return }
+        guard state != .recording else { return }
+        if isTapInstalled && audioEngine.isRunning {
+            self.state = .idleListening
+            self.isListening = true
+            return
+        }
+        
+        isTransitioning = true
+        
+        if #available(macOS 14.0, *) {
+            AVAudioApplication.requestRecordPermission { [weak self] granted in
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+                    self.isTransitioning = false
+                    if granted {
+                        self.beginAudioEngineIdleListening()
+                    } else {
+                        self.state = .permissionDenied("Microphone permission denied.")
+                    }
+                }
+            }
+        } else {
+            isTransitioning = false
+            beginAudioEngineIdleListening()
+        }
+    }
+    
+    private func beginAudioEngineIdleListening() {
+        if isTapInstalled && audioEngine.isRunning {
+            self.state = .idleListening
+            self.isListening = true
+            return
+        }
+        
+        let inputNode = audioEngine.inputNode
+        if isTapInstalled {
+            inputNode.removeTap(onBus: 0)
+            isTapInstalled = false
+        }
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else {
+            print("❌ CoreAudio device not ready. SampleRate is 0.")
+            self.state = .permissionDenied("Microphone not ready. Please check System Settings > Privacy & Security > Microphone.")
+            return
+        }
+        
+        self.isListening = true
+        
+        // Real-Time Audio Tap: 0 allocations, 0 locks, 0 actor hops
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] (buffer: AVAudioPCMBuffer, _: AVAudioTime) in
+            guard let self = self, self.isListening else { return }
+            
+            guard buffer.frameLength > 0,
+                  buffer.audioBufferList.pointee.mBuffers.mDataByteSize > 0,
+                  let channelData = buffer.floatChannelData?[0] else {
+                return
+            }
+            
+            // Forward to active dictation if present
+            self.recognitionRequest?.append(buffer)
+            
+            // Lock-free append to shared ring buffer for wake-word spotting
+            VoiceActivationEngine.shared.ringBuffer.append(samples: channelData, count: Int(buffer.frameLength))
+        }
+        isTapInstalled = true
+        
+        audioEngine.prepare()
+        do {
+            try audioEngine.start()
+            self.state = .idleListening
+        } catch {
+            print("❌ Idle Audio Engine Start Error:", error)
+            self.state = .permissionDenied("Could not start background microphone: \(error.localizedDescription)")
+            self.isListening = false
+            if isTapInstalled {
+                inputNode.removeTap(onBus: 0)
+                isTapInstalled = false
+            }
+        }
+    }
+    
+    /// Stops idle background listening completely, releasing the CoreAudio input tap.
+    func stopIdleListening() {
+        guard state == .idleListening || (isTapInstalled && state != .recording) else { return }
+        self.isListening = false
+        if isTapInstalled {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            isTapInstalled = false
+        }
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        self.state = .idle
+    }
+    
+    // MARK: - Active Command Recording (Dictation Mode)
+    
     func startRecording() {
         guard !isTransitioning else { return }
         
-        if audioEngine.isRunning || state == .recording {
+        if state == .recording {
             stopRecording()
         }
         
@@ -109,6 +217,14 @@ class VoiceService: ObservableObject {
                     self?.recognizedText = result.bestTranscription.formattedString
                 }
             }
+        }
+        
+        // If tap is already active from background idle listening, seamlessly transition
+        if isTapInstalled && audioEngine.isRunning {
+            self.state = .recording
+            self.isListening = true
+            startLevelPolling()
+            return
         }
         
         let inputNode = audioEngine.inputNode
@@ -189,25 +305,30 @@ class VoiceService: ObservableObject {
             return
         }
         
-        // 1. Instantly drop any incoming audio frames from the tap callback
-        self.isListening = false
         stopLevelPolling()
         
-        // 2. Safely remove tap first so no more buffers can arrive from hardware
+        // 1. Signal clean end of audio stream to speech recognizer
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        
+        // 2. If wake word is enabled and not muted, seamlessly drop back to idle listening
+        if VoiceActivationEngine.shared.isWakeWordEnabled && !VoiceActivationEngine.shared.isMuted {
+            self.state = .idleListening
+            self.isListening = true
+            return
+        }
+        
+        // 3. Otherwise completely tear down audio tap and engine
+        self.isListening = false
         if isTapInstalled {
             audioEngine.inputNode.removeTap(onBus: 0)
             isTapInstalled = false
         }
-        
-        // 3. Stop audio engine if running
         if audioEngine.isRunning {
             audioEngine.stop()
         }
-        
-        // 4. Signal clean end of audio stream to speech recognizer
-        recognitionRequest?.endAudio()
-        recognitionRequest = nil
-        
         self.state = .idle
     }
 }

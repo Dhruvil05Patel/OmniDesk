@@ -53,6 +53,28 @@ public final class MenuBarExtraController: NSObject {
         toggleItem.target = self
         menu.addItem(toggleItem)
         
+        let wakeWordEnabled = VoiceActivationEngine.shared.isWakeWordEnabled
+        let kw = VoiceActivationEngine.shared.wakeDetector.config.activeKeyword
+        let kwDisplay = kw == "HEY NEXUS" ? "Hey Nexus" : (kw == "NEXUS" ? "Nexus" : "Dhuli")
+        let wakeWordItem = NSMenuItem(
+            title: wakeWordEnabled ? "Disable Wake Word ('\(kwDisplay)')" : "Enable Wake Word ('\(kwDisplay)')",
+            action: #selector(toggleWakeWord),
+            keyEquivalent: ""
+        )
+        wakeWordItem.target = self
+        wakeWordItem.state = wakeWordEnabled ? .on : .off
+        menu.addItem(wakeWordItem)
+        
+        let isMuted = VoiceActivationEngine.shared.isMuted
+        let muteItem = NSMenuItem(
+            title: isMuted ? "Unmute Microphone" : "Mute Microphone",
+            action: #selector(toggleMute),
+            keyEquivalent: "m"
+        )
+        muteItem.keyEquivalentModifierMask = [.option, .shift]
+        muteItem.target = self
+        menu.addItem(muteItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         let settingsItem = NSMenuItem(title: "Settings & Activity History...", action: #selector(openSettingsWindow), keyEquivalent: ",")
@@ -79,6 +101,14 @@ public final class MenuBarExtraController: NSObject {
     
     @objc private func toggleAssistant() {
         DynamicIslandPanelController.shared.toggleExpanded()
+    }
+    
+    @objc private func toggleWakeWord() {
+        VoiceActivationEngine.shared.isWakeWordEnabled.toggle()
+    }
+    
+    @objc private func toggleMute() {
+        VoiceActivationEngine.shared.toggleMute()
     }
     
     @objc private func openSettingsWindow() {

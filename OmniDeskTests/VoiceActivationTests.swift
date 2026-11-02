@@ -26,7 +26,7 @@ final class VoiceActivationTests: XCTestCase {
     
     func testKeywordsConfigDefaultAndEffectiveThreshold() {
         let config = KeywordsConfig.default
-        XCTAssertEqual(config.activeKeyword, "DHULI")
+        XCTAssertEqual(config.activeKeyword, "NEXUS")
         XCTAssertEqual(config.sensitivity, .balanced)
         XCTAssertEqual(config.effectiveThreshold, 0.35, accuracy: 0.01)
         
@@ -41,20 +41,20 @@ final class VoiceActivationTests: XCTestCase {
         XCTAssertGreaterThan(lowConfig.effectiveThreshold, config.effectiveThreshold)
         
         // Test primary keyword match
-        let evaluation = config.evaluateTokenCandidate("DHULI", score: 0.30)
+        let evaluation = config.evaluateTokenCandidate("NEXUS", score: 0.30)
         XCTAssertTrue(evaluation.isMatch)
-        XCTAssertEqual(evaluation.matchedPhrase, "DHULI")
+        XCTAssertEqual(evaluation.matchedPhrase, "NEXUS")
         XCTAssertGreaterThanOrEqual(evaluation.confidence, 0.35)
         
-        // Test variant match: "HEY DHULI"
-        let heyEval = config.evaluateTokenCandidate("HEY DHULI", score: 0.25)
+        // Test variant match: "HEY NEXUS"
+        let heyEval = config.evaluateTokenCandidate("HEY NEXUS", score: 0.25)
         XCTAssertTrue(heyEval.isMatch)
-        XCTAssertEqual(heyEval.matchedPhrase, "HEY DHULI")
+        XCTAssertEqual(heyEval.matchedPhrase, "HEY NEXUS")
     }
     
     func testKeywordsFalsePositiveBlocklist() {
         let config = KeywordsConfig.default
-        let impostors = ["JULIE", "DAILY", "DO IT", "TRULY", "COOLIE", "DUTY", "DOOLEY"]
+        let impostors = ["LEXUS", "TEXAS", "NEXT", "ACCESS", "EXCESS", "FOCUS", "JULIE", "DAILY", "DO IT"]
         
         for word in impostors {
             let result = config.evaluateTokenCandidate(word, score: 0.99)
@@ -113,17 +113,17 @@ final class VoiceActivationTests: XCTestCase {
         let result = detector.process(samples: voiceSample)
         XCTAssertNotNil(result)
         if let result = result {
-            XCTAssertEqual(result.keyword, "DHULI")
+            XCTAssertEqual(result.keyword, "NEXUS")
             XCTAssertGreaterThanOrEqual(result.confidence, 0.35)
         }
         
         // 3. Test explicit candidate evaluation with impostor
-        let impostorResult = detector.evaluateCandidateString("JULIE", rawScore: 0.8)
+        let impostorResult = detector.evaluateCandidateString("LEXUS", rawScore: 0.8)
         XCTAssertNil(impostorResult)
         
-        let validResult = detector.evaluateCandidateString("DHULI", rawScore: 0.5)
+        let validResult = detector.evaluateCandidateString("NEXUS", rawScore: 0.5)
         XCTAssertNotNil(validResult)
-        XCTAssertEqual(validResult?.keyword, "DHULI")
+        XCTAssertEqual(validResult?.keyword, "NEXUS")
     }
     
     // MARK: - 4. Wake Acknowledgement Player Tests
@@ -366,5 +366,88 @@ final class VoiceActivationTests: XCTestCase {
             completed = true
         }
         XCTAssertTrue(completed)
+    }
+    
+    // MARK: - 12. Wake-Word Activation & Safety Gating Tests
+    
+    @MainActor
+    func testWakeWordEnabledSettingAndPersistence() {
+        let engine = VoiceActivationEngine.shared
+        let original = engine.isWakeWordEnabled
+        defer { engine.isWakeWordEnabled = original }
+        
+        engine.isWakeWordEnabled = true
+        XCTAssertTrue(engine.isWakeWordEnabled)
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "omni_wake_word_enabled"))
+        
+        engine.isWakeWordEnabled = false
+        XCTAssertFalse(engine.isWakeWordEnabled)
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "omni_wake_word_enabled"))
+    }
+    
+    @MainActor
+    func testWakeWordConfigurationUpdates() {
+        let engine = VoiceActivationEngine.shared
+        
+        engine.setWakeWordSensitivity(.high)
+        XCTAssertEqual(engine.wakeDetector.config.sensitivity, .high)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "omni_wake_word_sensitivity"), "High")
+        
+        engine.setActiveKeywordPhrase("HEY NEXUS")
+        XCTAssertEqual(engine.wakeDetector.config.activeKeyword, "HEY NEXUS")
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "omni_active_keyword"), "HEY NEXUS")
+        
+        // Reset to default
+        engine.setWakeWordSensitivity(.balanced)
+        engine.setActiveKeywordPhrase("NEXUS")
+    }
+    
+    @MainActor
+    func testWakeWordLockedOutDuringActiveConfirmationPrompt() async {
+        let engine = VoiceActivationEngine.shared
+        let gate = SafetyPolicyGate.shared
+        
+        // 1. Create a simulated active confirmation request
+        let approvalTask = Task { @MainActor in
+            await withCheckedContinuation { continuation in
+                let req = PendingConfirmationRequest(
+                    connectorId: "com.omnidesk.apps",
+                    toolName: "apps_terminate",
+                    arguments: ["app_name": "Terminal"],
+                    riskLevel: .destructiveOrOutbound,
+                    descriptionText: "Terminate Terminal",
+                    continuation: continuation
+                )
+                gate.activeRequest = req
+            }
+        }
+        
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        XCTAssertNotNil(gate.activeRequest)
+        
+        // 2. Attempt to trigger wake word "Nexus" while confirmation is pending
+        let previousState = engine.state
+        engine.triggerWakeWordActivation(keyword: "NEXUS")
+        
+        // 3. Assert wake word is ignored: state does NOT change to .awake and confirmation request remains active
+        XCTAssertEqual(engine.state, previousState)
+        XCTAssertNotNil(gate.activeRequest)
+        
+        // Clean up
+        gate.resolveActiveRequest(approved: false)
+        _ = await approvalTask.value
+        XCTAssertNil(gate.activeRequest)
+    }
+    
+    @MainActor
+    func testLifecycleHandlersSafeExecution() {
+        let engine = VoiceActivationEngine.shared
+        
+        // Verify sleep, wake, and audio config change handlers execute safely without throwing or crashing
+        engine.handleSystemSleep()
+        engine.handleSystemWake()
+        engine.handleAudioConfigurationChange()
+        
+        XCTAssertTrue(true)
     }
 }
