@@ -485,6 +485,121 @@ struct SettingsView: View {
                 }
                 .minimalCard(padding: 14, cornerRadius: 10)
                 
+                // Audio & Voice Output (TTS) Section
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "speaker.wave.2.bubble.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(Color.omniAccent)
+                        
+                        Text("AUDIO & VOICE OUTPUT (TTS)")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color.omniTextSecondary)
+                            .tracking(0.6)
+                    }
+                    
+                    // Dynamic Voice Feedback Toggle
+                    Toggle(isOn: Binding(
+                        get: { ackPlayer.ttsConfig.isVoiceFeedbackEnabled },
+                        set: {
+                            var cfg = ackPlayer.ttsConfig
+                            cfg.isVoiceFeedbackEnabled = $0
+                            ackPlayer.updateTTSConfig(cfg)
+                        }
+                    )) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Spoken Task Feedback")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(Color.omniTextPrimary)
+                            Text("Vocalizes action results and task confirmations aloud")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color.omniTextMuted)
+                        }
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: Color.omniAccent))
+                    
+                    if ackPlayer.ttsConfig.isVoiceFeedbackEnabled {
+                        Divider()
+                            .background(Color.omniBorder)
+                        
+                        // Voice Selection
+                        HStack {
+                            Text("System Voice")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color.omniTextSecondary)
+                            Spacer()
+                            Picker("", selection: Binding(
+                                get: { ackPlayer.ttsConfig.selectedVoiceIdentifier ?? "default" },
+                                set: {
+                                    var cfg = ackPlayer.ttsConfig
+                                    cfg.selectedVoiceIdentifier = ($0 == "default" ? nil : $0)
+                                    ackPlayer.updateTTSConfig(cfg)
+                                }
+                            )) {
+                                Text("System Default (en-US)").tag("default")
+                                ForEach(ackPlayer.fetchAvailableVoices()) { voice in
+                                    Text("\(voice.name) (\(voice.language) • \(voice.quality))").tag(voice.id)
+                                }
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(width: 220)
+                        }
+                        
+                        // Speech Rate Slider
+                        HStack {
+                            Text("Speech Speed")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color.omniTextSecondary)
+                            Spacer()
+                            HStack(spacing: 6) {
+                                Text("Slow")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(Color.omniTextMuted)
+                                Slider(
+                                    value: Binding(
+                                        get: { ackPlayer.ttsConfig.speechRate },
+                                        set: {
+                                            var cfg = ackPlayer.ttsConfig
+                                            cfg.speechRate = $0
+                                            ackPlayer.updateTTSConfig(cfg)
+                                        }
+                                    ),
+                                    in: 0.35...0.60,
+                                    step: 0.02
+                                )
+                                .frame(width: 120)
+                                Text("Fast")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(Color.omniTextMuted)
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                        .background(Color.omniBorder)
+                    
+                    // Hardware DSP Echo Cancellation Toggle
+                    Toggle(isOn: Binding(
+                        get: { ackPlayer.ttsConfig.isEchoCancellationEnabled },
+                        set: {
+                            var cfg = ackPlayer.ttsConfig
+                            cfg.isEchoCancellationEnabled = $0
+                            ackPlayer.updateTTSConfig(cfg)
+                        }
+                    )) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Hardware Acoustic Echo Cancellation (AEC)")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(Color.omniTextPrimary)
+                            Text("macOS VoiceProcessingIO DSP prevents speaker bleed into microphone")
+                                .font(.system(size: 9.5))
+                                .foregroundColor(Color.omniTextMuted)
+                        }
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: Color.omniAccent))
+                }
+                .minimalCard(padding: 14, cornerRadius: 10)
+                
                 // Appearance Section
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
