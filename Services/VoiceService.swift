@@ -31,9 +31,17 @@ class VoiceService: ObservableObject {
     private var isListening: Bool = false
     private var levelTimer: Timer?
     
+    /// Dedicated in-memory 16kHz PCM audio accumulator for WhisperKit on-device STT.
+    public let commandAccumulator = CommandAudioAccumulator()
+    
     @Published var recognizedText: String = ""
     @Published var state: VoiceState = .idle
     @Published var audioLevel: Float = 0.0
+    
+    /// Extracts accumulated command audio samples and resets the buffer.
+    public func extractAccumulatedCommandAudio() -> [Float] {
+        return commandAccumulator.extractAndReset()
+    }
     
     func toggleRecording() {
         if state == .recording {
@@ -113,6 +121,11 @@ class VoiceService: ObservableObject {
             
             // Forward to active dictation if present
             self.recognitionRequest?.append(buffer)
+            
+            // Accumulate command audio when actively recording
+            if self.state == .recording {
+                self.commandAccumulator.append(buffer: buffer)
+            }
             
             // Lock-free append to shared ring buffer for wake-word spotting
             VoiceActivationEngine.shared.ringBuffer.append(samples: channelData, count: Int(buffer.frameLength))
@@ -199,9 +212,10 @@ class VoiceService: ObservableObject {
     }
     
     private func beginAudioEngineRecording() {
-        // Reset state & text
+        // Reset state, text & command accumulator
         recognizedText = ""
         audioLevel = 0.0
+        commandAccumulator.reset()
         
         recognitionTask?.cancel()
         recognitionTask = nil
@@ -263,7 +277,10 @@ class VoiceService: ObservableObject {
             // 2. Append buffer to speech recognition request
             self.recognitionRequest?.append(buffer)
             
-            // 3. Append samples to shared AudioRingBuffer without allocations or locks
+            // 3. Accumulate command audio for WhisperKit on-device STT
+            self.commandAccumulator.append(buffer: buffer)
+            
+            // 4. Append samples to shared AudioRingBuffer without allocations or locks
             VoiceActivationEngine.shared.ringBuffer.append(samples: channelData, count: Int(buffer.frameLength))
         }
         isTapInstalled = true

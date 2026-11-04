@@ -254,6 +254,32 @@ public final class VoiceActivationEngine: ObservableObject {
         UserDefaults.standard.set(phrase, forKey: Self.activeKeywordKey)
     }
     
+    // MARK: - STT Engine Configuration
+    
+    public func setSpeechEngineType(_ engineType: SpeechEngineType) {
+        var cfg = WhisperKitEngine.shared.currentConfig()
+        cfg.selectedEngine = engineType
+        WhisperKitEngine.shared.updateConfig(cfg)
+    }
+    
+    public func setWhisperModelTier(_ tier: WhisperModelTier) {
+        var cfg = WhisperKitEngine.shared.currentConfig()
+        cfg.modelTier = tier
+        WhisperKitEngine.shared.updateConfig(cfg)
+    }
+    
+    public func setWhisperLanguageOption(_ language: WhisperLanguageOption) {
+        var cfg = WhisperKitEngine.shared.currentConfig()
+        cfg.languageOption = language
+        WhisperKitEngine.shared.updateConfig(cfg)
+    }
+    
+    public func setWhisperFallbackToSystem(_ fallback: Bool) {
+        var cfg = WhisperKitEngine.shared.currentConfig()
+        cfg.fallbackToSystemSpeech = fallback
+        WhisperKitEngine.shared.updateConfig(cfg)
+    }
+    
     // MARK: - Command Recording Lifecycle
     
     public func beginCommandRecording() {
@@ -307,11 +333,42 @@ public final class VoiceActivationEngine: ObservableObject {
         silenceTimer = nil
         
         guard state == .recording else { return }
-        voiceService.stopRecording()
         audioLevel = 0.0
         transition(to: .processing)
         
-        let capturedQuery = lastCapturedCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+        let config = WhisperKitEngine.shared.currentConfig()
+        let audioSamples = voiceService.extractAccumulatedCommandAudio()
+        voiceService.stopRecording()
+        
+        if config.selectedEngine == .whisperKit {
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                var finalTranscript = ""
+                do {
+                    finalTranscript = try await WhisperKitEngine.shared.transcribe(
+                        audioSamples: audioSamples,
+                        sampleRate: 16000.0,
+                        language: config.languageOption.codeHint
+                    )
+                } catch {
+                    print("❌ WhisperKit transcription failed: \(error.localizedDescription)")
+                }
+                
+                // Fall back to captured system partials if WhisperKit produced no tokens
+                if finalTranscript.isEmpty && config.fallbackToSystemSpeech {
+                    finalTranscript = self.lastCapturedCommand
+                }
+                
+                self.dispatchCapturedCommand(finalTranscript)
+            }
+        } else {
+            let capturedQuery = lastCapturedCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+            dispatchCapturedCommand(capturedQuery)
+        }
+    }
+    
+    private func dispatchCapturedCommand(_ rawQuery: String) {
+        let capturedQuery = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         print("🎙️ Concluded recording with transcript: '\(capturedQuery)'")
         
         if capturedQuery.isEmpty {
@@ -323,7 +380,9 @@ public final class VoiceActivationEngine: ObservableObject {
                 }
             }
         } else {
-            onCommandCaptured?(capturedQuery)
+            self.lastCapturedCommand = capturedQuery
+            self.voiceService.recognizedText = capturedQuery
+            self.onCommandCaptured?(capturedQuery)
         }
     }
     

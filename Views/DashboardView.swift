@@ -228,6 +228,7 @@ struct SettingsView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var activationEngine = VoiceActivationEngine.shared
     @ObservedObject private var ackPlayer = WakeAcknowledgementPlayer.shared
+    @State private var whisperConfig = WhisperKitEngine.shared.currentConfig()
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -355,6 +356,132 @@ struct SettingsView: View {
                         .foregroundColor(Color.omniTextMuted)
                         .lineSpacing(2)
                         .padding(.top, 2)
+                }
+                .minimalCard(padding: 14, cornerRadius: 10)
+                
+                // Speech Recognition (STT) Section
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "captions.bubble.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(Color.omniAccent)
+                        
+                        Text("SPEECH RECOGNITION (STT)")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color.omniTextSecondary)
+                            .tracking(0.6)
+                    }
+                    
+                    // Engine Picker
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Engine")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color.omniTextSecondary)
+                            Text(whisperConfig.selectedEngine.summary)
+                                .font(.system(size: 9.5))
+                                .foregroundColor(Color.omniTextMuted)
+                        }
+                        Spacer()
+                        Picker("", selection: Binding(
+                            get: { whisperConfig.selectedEngine },
+                            set: {
+                                whisperConfig.selectedEngine = $0
+                                WhisperKitEngine.shared.updateConfig(whisperConfig)
+                            }
+                        )) {
+                            ForEach(SpeechEngineType.allCases) { engine in
+                                Text(engine.rawValue).tag(engine)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                        .frame(width: 220)
+                    }
+                    
+                    if whisperConfig.selectedEngine == .whisperKit {
+                        Divider()
+                            .background(Color.omniBorder)
+                        
+                        // Whisper Model Size
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Model Tier")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(Color.omniTextSecondary)
+                                Text(whisperConfig.modelTier.description)
+                                    .font(.system(size: 9.5))
+                                    .foregroundColor(Color.omniTextMuted)
+                            }
+                            Spacer()
+                            Picker("", selection: Binding(
+                                get: { whisperConfig.modelTier },
+                                set: {
+                                    whisperConfig.modelTier = $0
+                                    WhisperKitEngine.shared.updateConfig(whisperConfig)
+                                }
+                            )) {
+                                ForEach(WhisperModelTier.allCases) { tier in
+                                    Text(tier.displayName).tag(tier)
+                                }
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(width: 200)
+                        }
+                        
+                        // Whisper Language Option
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Language Target")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(Color.omniTextSecondary)
+                                Text("Select Auto for seamless Hinglish code-switching")
+                                    .font(.system(size: 9.5))
+                                    .foregroundColor(Color.omniTextMuted)
+                            }
+                            Spacer()
+                            Picker("", selection: Binding(
+                                get: { whisperConfig.languageOption },
+                                set: {
+                                    whisperConfig.languageOption = $0
+                                    WhisperKitEngine.shared.updateConfig(whisperConfig)
+                                }
+                            )) {
+                                ForEach(WhisperLanguageOption.allCases) { lang in
+                                    Text(lang.displayName).tag(lang)
+                                }
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(width: 200)
+                        }
+                        
+                        // Fallback toggle
+                        Toggle(isOn: Binding(
+                            get: { whisperConfig.fallbackToSystemSpeech },
+                            set: {
+                                whisperConfig.fallbackToSystemSpeech = $0
+                                WhisperKitEngine.shared.updateConfig(whisperConfig)
+                            }
+                        )) {
+                            Text("Fallback to System Speech if Unparsed")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color.omniTextSecondary)
+                        }
+                        .toggleStyle(SwitchToggleStyle(tint: Color.omniAccent))
+                    }
+                    
+                    // Offline privacy disclosure
+                    HStack(spacing: 5) {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.system(size: 9.5))
+                            .foregroundColor(Color.omniAccent)
+                        Text(whisperConfig.selectedEngine == .whisperKit
+                             ? "100% On-Device: Audio is tokenized in local RAM via Apple Neural Engine (ANE). Zero bytes sent to cloud."
+                             : "System dictation may send audio fragments to Apple servers when offline models are uninstalled.")
+                            .font(.system(size: 9.5))
+                            .foregroundColor(Color.omniTextMuted)
+                            .lineSpacing(2)
+                    }
+                    .padding(.top, 2)
                 }
                 .minimalCard(padding: 14, cornerRadius: 10)
                 
