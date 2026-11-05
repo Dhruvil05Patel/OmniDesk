@@ -84,6 +84,27 @@ class VoiceService: ObservableObject {
         }
     }
     
+    // MARK: - VoiceProcessingIO Acoustic Echo Cancellation (AEC)
+    
+    private func configureVoiceProcessingAEC(inputNode: AVAudioInputNode) {
+        let isAECEnabled = TTSVoiceConfig.loadPersisted().isEchoCancellationEnabled
+        do {
+            try inputNode.setVoiceProcessingEnabled(isAECEnabled)
+        } catch {
+            // Some aggregate or virtual CoreAudio drivers do not support VoiceProcessingIO
+            print("ℹ️ VoiceProcessingIO AEC not supported on active audio device: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Dynamically enables or disables hardware DSP acoustic echo cancellation.
+    public func setEchoCancellationEnabled(_ enabled: Bool) {
+        do {
+            try audioEngine.inputNode.setVoiceProcessingEnabled(enabled)
+        } catch {
+            print("ℹ️ Could not update VoiceProcessingIO AEC: \(error.localizedDescription)")
+        }
+    }
+    
     private func beginAudioEngineIdleListening() {
         if isTapInstalled && audioEngine.isRunning {
             self.state = .idleListening
@@ -99,6 +120,8 @@ class VoiceService: ObservableObject {
         if audioEngine.isRunning {
             audioEngine.stop()
         }
+        
+        configureVoiceProcessingAEC(inputNode: inputNode)
         
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else {
@@ -249,6 +272,8 @@ class VoiceService: ObservableObject {
         if audioEngine.isRunning {
             audioEngine.stop()
         }
+        
+        configureVoiceProcessingAEC(inputNode: inputNode)
         
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         

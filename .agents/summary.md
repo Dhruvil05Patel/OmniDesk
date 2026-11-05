@@ -2,9 +2,9 @@
 ## Architectural Blueprint, System Specification & Project Roadmap
 
 **Document Location:** `.agents/summary.md`  
-**Latest Update:** 2026-11-02  
-**Current Branch:** `feature/whisperkit-local-stt`  
-**Test Suite Status:** 73 / 73 Tests Passing (`** TEST SUCCEEDED **`)
+**Latest Update:** 2026-11-04  
+**Current Branch:** `feature/local-tts-echo-cancellation`  
+**Test Suite Status:** 80 / 80 Tests Passing (`** TEST SUCCEEDED **`)
 
 ---
 
